@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 import { productService } from '../api/productService';
 import { categoryService } from '../api/categoryService';
 import { brandService } from '../api/brandService';
@@ -12,159 +14,198 @@ import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import Dropdown from 'primevue/dropdown';
-
+import Select from 'primevue/select';
+import Tag from 'primevue/tag';
+import ConfirmDialog from 'primevue/confirmdialog';
+import Toast from 'primevue/toast';
 
 const products = ref<Product[]>([]);
 const categories = ref<Category[]>([]);
 const brands = ref<Brand[]>([]);
 const units = ref<Unit[]>([]);
-
 const loading = ref(true);
 const productDialog = ref(false);
+const confirm = useConfirm();
+const toast = useToast();
 
+const product = ref<Partial<Product>>({});
 
-const product = ref<Partial<Product>>({
-    name: '',
-    sku: '',
-    price: 0,
-    material: '',
-    diameter: '',
-    threadType: '',
-    categoryId: undefined,
-    brandId: undefined,
-    unitId: undefined
-});
-
-
-const loadAllData = async () => {
+const loadData = async () => {
     loading.value = true;
     try {
-        const [prodRes, catRes, brandRes, unitRes] = await Promise.all([
+        const [p, c, b, u] = await Promise.all([
             productService.getAll(),
             categoryService.getAll(),
             brandService.getAll(),
             unitService.getAll()
         ]);
-        
-        products.value = prodRes.data;
-        categories.value = catRes.data;
-        brands.value = brandRes.data;
-        units.value = unitRes.data;
-    } catch (error) {
-        console.error("Помилка завантаження даних:", error);
+        products.value = p.data;
+        categories.value = c.data;
+        brands.value = b.data;
+        units.value = u.data;
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Помилка', detail: 'Дані не завантажено' });
     } finally {
         loading.value = false;
     }
 };
 
-onMounted(loadAllData);
-
-const openNew = () => {
-    product.value = { 
-        name: '', 
-        sku: '', 
-        price: 0, 
-        material: '', 
-        diameter: '', 
-        threadType: '', 
-        categoryId: undefined, 
-        brandId: undefined, 
-        unitId: undefined 
-    };
-    productDialog.value = true;
-};
-
-const hideDialog = () => {
-    productDialog.value = false;
-};
+onMounted(loadData);
 
 const saveProduct = async () => {
-    try {
-        if (product.value.name?.trim() && product.value.categoryId) {
-            await productService.create(product.value);
-            productDialog.value = false;
-            await loadAllData(); 
-        } else {
-            alert("Заповніть назву та оберіть категорію!");
-        }
-    } catch (error) {
-        console.error("Помилка при збереженні:", error);
+    if (!product.value.name || !product.value.sku || !product.value.categoryId) {
+        toast.add({ severity: 'warn', summary: 'Увага', detail: 'Заповніть обов\'язкові поля' });
+        return;
     }
+
+    try {
+        if (product.value.id) {
+            await productService.update(product.value.id, product.value as Product);
+            toast.add({ severity: 'success', summary: 'Успішно', detail: 'Товар оновлено' });
+        } else {
+            await productService.create(product.value);
+            toast.add({ severity: 'success', summary: 'Успішно', detail: 'Товар створено' });
+        }
+        productDialog.value = false;
+        await loadData();
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Помилка збереження' });
+    }
+};
+
+const confirmDelete = (id: number) => {
+    confirm.require({
+        message: 'Ви впевнені, що хочете видалити цей товар?',
+        header: 'Підтвердження',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Так, видалити',
+        acceptClass: 'p-button-danger',
+        rejectLabel: 'Ні',
+        accept: async () => {
+            try {
+                await productService.delete(id);
+                toast.add({ severity: 'success', summary: 'Видалено' });
+                await loadData();
+            } catch (e) {
+                toast.add({ severity: 'error', summary: 'Помилка видалення' });
+            }
+        }
+    });
 };
 </script>
 
 <template>
-    <div class="card">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold">Каталог товарів</h2>
-            <Button label="Додати товар" icon="pi pi-plus" severity="success" @click="openNew" />
-        </div>
-
-        <DataTable :value="products" :loading="loading" paginator :rows="10" class="p-datatable-sm shadow-md">
-            <Column field="sku" header="SKU" sortable></Column>
-            <Column field="name" header="Назва" sortable></Column>
-            <Column field="categoryName" header="Категорія" sortable></Column>
-            <Column field="price" header="Ціна" sortable>
-                <template #body="slotProps">
-                    {{ slotProps.data.price }} грн
-                </template>
-            </Column>
-            <Column header="Дії">
-                <template #body>
-                    <Button icon="pi pi-pencil" text rounded severity="info" />
-                    <Button icon="pi pi-trash" text rounded severity="danger" />
-                </template>
-            </Column>
-        </DataTable>
-
-        <Dialog v-model:visible="productDialog" :style="{width: '650px'}" header="Деталі товару" :modal="true" class="p-fluid">
-            <div class="grid">
-                <div class="field col-12 md:col-6 mb-4">
-                    <label for="name" class="font-bold block mb-2">Назва</label>
-                    <InputText id="name" v-model.trim="product.name" required="true" autofocus />
-                </div>
-                <div class="field col-12 md:col-6 mb-4">
-                    <label for="sku" class="font-bold block mb-2">SKU (Артикул)</label>
-                    <InputText id="sku" v-model.trim="product.sku" required="true" />
-                </div>
-
-                <div class="field col-12 md:col-4 mb-4">
-                    <label class="font-bold block mb-2">Категорія</label>
-                    <Dropdown v-model="product.categoryId" :options="categories" optionLabel="name" optionValue="id" placeholder="Оберіть категорію" />
-                </div>
-                <div class="field col-12 md:col-4 mb-4">
-                    <label class="font-bold block mb-2">Бренд</label>
-                    <Dropdown v-model="product.brandId" :options="brands" optionLabel="name" optionValue="id" placeholder="Оберіть бренд" />
-                </div>
-                <div class="field col-12 md:col-4 mb-4">
-                    <label class="font-bold block mb-2">Од. виміру</label>
-                    <Dropdown v-model="product.unitId" :options="units" optionLabel="name" optionValue="id" placeholder="Од." />
-                </div>
-
-                <div class="field col-12 md:col-4 mb-4">
-                    <label class="font-bold block mb-2">Матеріал</label>
-                    <InputText v-model="product.material" placeholder="напр. Латунь" />
-                </div>
-                <div class="field col-12 md:col-4 mb-4">
-                    <label class="font-bold block mb-2">Діаметр</label>
-                    <InputText v-model="product.diameter" placeholder="напр. 1/2" />
-                </div>
-                <div class="field col-12 md:col-4 mb-4">
-                    <label class="font-bold block mb-2">Тип різьби</label>
-                    <InputText v-model="product.threadType" placeholder="напр. Зовнішня" />
-                </div>
-
-                <div class="field col-12 mb-4">
-                    <label for="price" class="font-bold block mb-2">Ціна</label>
-                    <InputNumber id="price" v-model="product.price" mode="currency" currency="UAH" locale="uk-UA" />
-                </div>
+    <div class="p-6 light-theme-fix">
+        <Toast />
+        <ConfirmDialog />
+        
+        <div class="bg-white p-6 rounded-lg shadow border border-slate-200">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Каталог товарів</h2>
+                <Button label="Додати товар" icon="pi pi-plus" severity="success" @click="product = {price:0, minThreshold:5}; productDialog = true" />
             </div>
 
+            <DataTable :value="products" :loading="loading" paginator :rows="10" class="p-datatable-sm" tableStyle="min-width: 80rem">
+                <Column field="sku" header="SKU" sortable></Column>
+                <Column field="name" header="Назва" sortable></Column>
+                <Column field="categoryName" header="Категорія" sortable>
+                    <template #body="s">
+                        <Tag :value="s.data.categoryName" severity="secondary" />
+                    </template>
+                </Column>
+                <Column field="brandName" header="Бренд" sortable></Column>
+                <Column field="material" header="Матеріал"></Column>
+                <Column field="diameter" header="Діаметр"></Column>
+                <Column field="threadType" header="Різьба"></Column>
+                <Column field="unitName" header="Од. вим."></Column>
+                <Column field="price" header="Ціна" sortable>
+                    <template #body="s">
+                        <span class="font-bold text-emerald-700">{{ s.data.price }} грн</span>
+                    </template>
+                </Column>
+                <Column header="Дії">
+                    <template #body="s">
+                        <div class="flex gap-2">
+                            <Button icon="pi pi-pencil" text rounded severity="info" @click="product = {...s.data}; productDialog = true" />
+                            <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(s.data.id)" />
+                        </div>
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
+
+        <Dialog v-model:visible="productDialog" :header="product.id ? 'Редагувати товар' : 'Новий товар'" modal style="width: 550px" class="p-fluid custom-light-dialog">
+            <div class="flex flex-col gap-4 py-2">
+                <div class="field">
+                    <label class="font-bold text-slate-700 mb-1 block">Назва *</label>
+                    <InputText v-model="product.name" class="p-inputtext-sm text-slate-900" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">SKU *</label>
+                        <InputText v-model="product.sku" class="p-inputtext-sm text-slate-900" />
+                    </div>
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">Ціна *</label>
+                        <InputNumber v-model="product.price" mode="currency" currency="UAH" locale="uk-UA" class="p-inputtext-sm text-slate-900" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="font-bold text-slate-700 mb-1 block">Категорія *</label>
+                    <Select v-model="product.categoryId" :options="categories" optionLabel="name" optionValue="id" placeholder="Оберіть" class="p-inputtext-sm" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">Бренд</label>
+                        <Select v-model="product.brandId" :options="brands" optionLabel="name" optionValue="id" placeholder="Оберіть" class="p-inputtext-sm" />
+                    </div>
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">Одиниця виміру</label>
+                        <Select v-model="product.unitId" :options="units" optionLabel="name" optionValue="id" placeholder="Оберіть" class="p-inputtext-sm" />
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">Матеріал</label>
+                        <InputText v-model="product.material" class="p-inputtext-sm text-slate-900" />
+                    </div>
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">Діаметр</label>
+                        <InputText v-model="product.diameter" class="p-inputtext-sm text-slate-900" />
+                    </div>
+                    <div class="field">
+                        <label class="font-bold text-slate-700 mb-1 block">Різьба</label>
+                        <InputText v-model="product.threadType" class="p-inputtext-sm text-slate-900" />
+                    </div>
+                </div>
+            </div>
             <template #footer>
-                <Button label="Скасувати" icon="pi pi-times" text @click="hideDialog" />
-                <Button label="Зберегти" icon="pi pi-check" @click="saveProduct" />
+                <div class="flex justify-end gap-2">
+                    <Button label="Скасувати" icon="pi pi-times" text severity="secondary" @click="productDialog = false" />
+                    <Button label="Зберегти" icon="pi pi-check" severity="success" @click="saveProduct" />
+                </div>
             </template>
         </Dialog>
     </div>
 </template>
+
+<style scoped>
+:deep(.p-inputtext), :deep(.p-select), :deep(.p-inputnumber-input) {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+:deep(.p-select-label) {
+     color: #1e293b !important;
+}
+
+:deep(.p-datatable) {
+    background-color: white !important;
+}
+
+:deep(.p-select-panel) {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+}
+</style>

@@ -1,16 +1,27 @@
-
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
+  color-scheme: light !important;
   background-color: #f1f5f9; 
   color: #1e293b;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --p-surface-0: #ffffff !important;
+  --p-surface-50: #f8fafc !important;
+  --p-surface-100: #f1f5f9 !important;
+  --p-surface-200: #e2e8f0 !important;
+  --p-surface-300: #cbd5e1 !important;
+  --p-surface-400: #94a3b8 !important;
+  --p-surface-500: #64748b !important;
+  --p-surface-600: #475569 !important;
+  --p-surface-700: #334155 !important;
+  --p-surface-800: #1e293b !important;
+  --p-surface-900: #0f172a !important;
+
+  --p-primary-color: #10b981 !important;
+  --p-content-background: #ffffff !important;
+  --p-text-color: #1e293b !important;
+  --p-overlay-select-background: #ffffff !important;
 }
 
 body {
@@ -18,32 +29,66 @@ body {
   display: flex;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #f1f5f9;
 }
 
 #app {
   width: 100%;
 }
 
+.p-datatable, .p-dialog, .p-confirm-dialog, .p-toast-message, .p-select-panel, .p-inputtext, .p-inputnumber-input {
+    background: #ffffff !important;
+    color: #1e293b !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+}
+
+.p-dialog .p-dialog-header {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.p-dialog .p-dialog-content {
+    background: #ffffff !important;
+    color: #1e293b !important;
+}
+
+.p-select-panel {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+.p-select-item:not(.p-highlight):not(.p-disabled):hover {
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+.p-select-item.p-highlight {
+    background-color: #ecfdf5 !important;
+    color: #10b981 !important;
+}
 
 .card {
   background: #ffffff;
   padding: 1.5rem;
   border-radius: 12px;
   margin-bottom: 1rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 }
-
 
 .router-link-active {
   background-color: #10b981 !important; 
   color: white !important;
-}
-
-
-.p-datatable .p-datatable-thead > tr > th {
-  background-color: #f8fafc;
-  color: #64748b;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }

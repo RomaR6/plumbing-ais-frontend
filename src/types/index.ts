@@ -10,6 +10,7 @@ export interface Unit extends BaseEntity {}
 export interface Product extends BaseEntity {
     sku: string;
     price: number;
+    minThreshold: number;
     material?: string;
     diameter?: string;
     threadType?: string;
