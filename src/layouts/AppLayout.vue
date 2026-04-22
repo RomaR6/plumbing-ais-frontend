@@ -58,6 +58,9 @@ const logout = () => {
         <router-link v-if="userRole === 'Admin'" to="/users" class="menu-item">
           <i class="pi pi-users"></i> <span>Персонал</span>
         </router-link>
+        <router-link v-if="userRole === 'Admin'" to="/logs" class="menu-item">
+          <i class="pi pi-history"></i> <span>Журнал дій</span>
+        </router-link>
       </nav>
     </aside>
 

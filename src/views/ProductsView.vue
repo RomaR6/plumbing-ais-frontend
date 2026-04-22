@@ -115,8 +115,8 @@ const confirmDelete = (id: number) => {
         <div class="bg-white p-6 rounded-lg shadow border border-slate-200">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800">Каталог товарів</h2>
-                    <p class="text-slate-500 text-sm">Управління номенклатурою та технічними характеристиками</p>
+                    <h2 class="text-2xl font-bold text-slate-800 text-left">Каталог товарів</h2>
+                    <p class="text-slate-500 text-sm text-left">Управління номенклатурою та технічними характеристиками</p>
                 </div>
                 <Button v-if="canAdd" label="Додати товар" icon="pi pi-plus" severity="success" @click="openNew" />
             </div>
@@ -140,10 +140,10 @@ const confirmDelete = (id: number) => {
                 </Column>
                 <Column header="Дії" headerStyle="width: 7rem">
                     <template #body="s">
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 justify-center">
                             <Button v-if="canEdit" icon="pi pi-pencil" text rounded severity="info" @click="editProduct(s.data)" />
                             <Button v-if="canDelete" icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(s.data.id)" />
-                            <span v-if="!canEdit" class="text-slate-400 text-xs italic">Перегляд</span>
+                            <span v-if="!canEdit" class="text-slate-400 text-xs italic">Тільки перегляд</span>
                         </div>
                     </template>
                 </Column>
