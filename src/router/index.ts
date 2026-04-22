@@ -38,9 +38,27 @@ const router = createRouter({
           meta: { requiresAuth: true, roles: ['Admin', 'Manager'] } 
         },
         { 
+          path: 'transactions', 
+          name: 'transactions', 
+          component: () => import('../views/TransactionsView.vue'),
+          meta: { requiresAuth: true, roles: ['Admin', 'Manager'] } 
+        },
+        { 
           path: 'users', 
           name: 'users', 
           component: () => import('../views/UsersView.vue'),
+          meta: { requiresAuth: true, roles: ['Admin'] } 
+        },
+        { 
+          path: 'reports', 
+          name: 'reports', 
+          component: () => import('../views/ReportsView.vue'),
+          meta: { requiresAuth: true, roles: ['Admin'] } 
+        },
+        { 
+          path: 'logs', 
+          name: 'logs', 
+          component: () => import('../views/LogsView.vue'),
           meta: { requiresAuth: true, roles: ['Admin'] } 
         },
         {
@@ -48,12 +66,6 @@ const router = createRouter({
           name: 'profile',
           component: () => import('../views/ProfileView.vue'),
           meta: { requiresAuth: true }
-        },
-        { 
-          path: 'logs', 
-          name: 'logs', 
-          component: () => import('../views/LogsView.vue'),
-          meta: { requiresAuth: true, roles: ['Admin'] } 
         }
       ]
     }
@@ -62,11 +74,9 @@ const router = createRouter({
 
 router.beforeEach((to, _, next) => {
   const authStore = useAuthStore();
-  
   if (!authStore.token && localStorage.getItem('token')) {
     authStore.init();
   }
-
   const isAuthenticated = !!authStore.token;
   const userRole = authStore.role || '';
 

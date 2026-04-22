@@ -8,6 +8,7 @@ import Menu from 'primevue/menu';
 const authStore = useAuthStore();
 const router = useRouter();
 const menu = ref();
+const isCollapsed = ref(false);
 
 onMounted(() => {
   authStore.init();
@@ -30,6 +31,10 @@ const userMenuItems = ref([
   }
 ]);
 
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value;
+};
+
 const toggleMenu = (event: any) => {
   menu.value.toggle(event);
 };
@@ -42,24 +47,41 @@ const logout = () => {
 
 <template>
   <div class="layout-container">
-    <aside class="sidebar">
+    <aside :class="['sidebar', { 'collapsed': isCollapsed }]">
       <div class="logo">
         <i class="pi pi-box" style="font-size: 1.5rem"></i>
-        <span>AIS Plumbing</span>
+        <span v-if="!isCollapsed">AIS Plumbing</span>
       </div>
       
       <nav class="menu-nav">
-        <router-link to="/" class="menu-item">
-          <i class="pi pi-list"></i> <span>Товари</span>
+        <router-link to="/" class="menu-item" v-tooltip.right="isCollapsed ? 'Товари' : null">
+          <i class="pi pi-list"></i>
+          <span v-if="!isCollapsed">Товари</span>
         </router-link>
-        <router-link v-if="isAuthenticated" to="/stocks" class="menu-item">
-          <i class="pi pi-map"></i> <span>Склад</span>
+        
+        <router-link v-if="isAuthenticated" to="/stocks" class="menu-item" v-tooltip.right="isCollapsed ? 'Склад' : null">
+          <i class="pi pi-map"></i>
+          <span v-if="!isCollapsed">Склад</span>
         </router-link>
-        <router-link v-if="userRole === 'Admin'" to="/users" class="menu-item">
-          <i class="pi pi-users"></i> <span>Персонал</span>
+
+        <router-link v-if="isAuthenticated" to="/transactions" class="menu-item" v-tooltip.right="isCollapsed ? 'Транзакції' : null">
+          <i class="pi pi-sync"></i>
+          <span v-if="!isCollapsed">Транзакції</span>
         </router-link>
-        <router-link v-if="userRole === 'Admin'" to="/logs" class="menu-item">
-          <i class="pi pi-history"></i> <span>Журнал дій</span>
+
+        <router-link v-if="userRole === 'Admin'" to="/users" class="menu-item" v-tooltip.right="isCollapsed ? 'Персонал' : null">
+          <i class="pi pi-users"></i>
+          <span v-if="!isCollapsed">Персонал</span>
+        </router-link>
+
+        <router-link v-if="userRole === 'Admin'" to="/reports" class="menu-item" v-tooltip.right="isCollapsed ? 'Аналітика' : null">
+          <i class="pi pi-chart-bar"></i>
+          <span v-if="!isCollapsed">Аналітика та звіти</span>
+        </router-link>
+
+        <router-link v-if="userRole === 'Admin'" to="/logs" class="menu-item" v-tooltip.right="isCollapsed ? 'Журнал дій' : null">
+          <i class="pi pi-history"></i>
+          <span v-if="!isCollapsed">Журнал дій</span>
         </router-link>
       </nav>
     </aside>
@@ -67,7 +89,7 @@ const logout = () => {
     <div class="main-content">
       <header class="header">
         <div class="header-left">
-          <Button icon="pi pi-bars" text severity="secondary" />
+          <Button icon="pi pi-bars" text severity="secondary" @click="toggleSidebar" />
         </div>
         
         <div class="header-right">
@@ -100,16 +122,46 @@ const logout = () => {
 
 <style scoped>
 .layout-container { display: flex; height: 100vh; overflow: hidden; }
-.sidebar { width: 260px; background: #1e293b; color: white; display: flex; flex-direction: column; }
-.logo { padding: 2rem; font-weight: bold; display: flex; align-items: center; gap: 10px; font-size: 1.2rem; border-bottom: 1px solid #334155; }
-.menu-nav { padding: 1rem 0; flex: 1; }
-.menu-item { display: flex; align-items: center; gap: 12px; padding: 1rem 2rem; color: #cbd5e1; text-decoration: none; transition: 0.3s; }
+.sidebar { 
+  width: 260px; 
+  background: #1e293b; 
+  color: white; 
+  display: flex; 
+  flex-direction: column; 
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.sidebar.collapsed { width: 80px; }
+.logo { 
+  padding: 2rem; 
+  font-weight: bold; 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  font-size: 1.2rem; 
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.menu-nav { padding: 1rem 0; flex: 1; overflow-x: hidden; }
+.menu-item { 
+  display: flex; 
+  align-items: center; 
+  gap: 16px; 
+  padding: 1rem 1.5rem; 
+  color: #cbd5e1; 
+  text-decoration: none; 
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.sidebar.collapsed .menu-item { justify-content: center; padding: 1rem; gap: 0; }
+.menu-item i { font-size: 1.2rem; min-width: 24px; text-align: center; }
 .menu-item:hover { background: #334155; color: white; }
 .menu-item.router-link-active { background: #10b981; color: white; border-right: 4px solid #fff; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: #f1f5f9; }
-.header { height: 64px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; border-bottom: 1px solid #e2e8f0; }
-.content-area { padding: 2rem; }
+.header { height: 64px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; border-bottom: 1px solid #e2e8f0; }
+.content-area { padding: 1.5rem; }
 
 .header-right { display: flex; align-items: center; }
 .user-profile-wrapper { 
