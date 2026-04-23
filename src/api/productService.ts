@@ -11,7 +11,7 @@ export const productService = {
     create(data: Partial<Product>) {
         return api.post<Product>('Products', data);
     },
-    update(id: number, data: Partial<Product>) {
+    update(id: number, data: Product) {
         return api.put<Product>(`Products/${id}`, data);
     },
     delete(id: number) {

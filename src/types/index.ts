@@ -22,13 +22,45 @@ export interface Product extends BaseEntity {
     unitName?: string;
 }
 
+export interface Warehouse {
+    id: number;
+    name: string;
+    address?: string;
+}
+
+export interface Location {
+    id: number;
+    warehouseId: number;
+    rowCode: string;
+    rackCode: string;
+    shelfCode: string;
+    warehouse?: Warehouse;
+}
+
 export interface Stock {
     id: number;
     productId: number;
     locationId: number;
     quantity: number;
-    product?: Product; 
+    product?: Product;
     location?: Location;
     productName?: string;
     locationName?: string;
+}
+
+export interface Transaction {
+    id: number;
+    type: string;
+    userId: number;
+    contractorId?: number;
+    date: string;
+    documentNumber: string;
+    user?: any;
+    contractor?: Contractor;
+}
+
+export interface Contractor {
+    id: number;
+    name: string;
+    type: string;
 }
