@@ -60,6 +60,8 @@ const submitTransaction = async () => {
         );
         toast.add({ severity: 'success', summary: 'Успішно', detail: 'Операцію проведено' });
         transaction.value.quantity = 1;
+        transaction.value.productId = null;
+        transaction.value.locationId = null;
     } catch (e: any) {
         toast.add({ 
             severity: 'error', 
@@ -98,10 +100,16 @@ onMounted(loadData);
                     <div class="flex flex-col gap-2">
                         <label class="font-bold text-slate-700 text-sm">Локація</label>
                         <Select v-model="transaction.locationId" :options="locations" optionValue="id" filter placeholder="Оберіть місце" class="w-full">
+                            <template #value="slotProps">
+                                <div v-if="slotProps.value" class="text-slate-800">
+                                    Комірка #{{ slotProps.value }}
+                                </div>
+                                <span v-else>{{ slotProps.placeholder }}</span>
+                            </template>
                             <template #option="s">
                                 <div class="flex flex-col text-sm">
-                                    <span class="font-bold">{{ s.option.warehouse?.name }}</span>
-                                    <span>Ряд: {{ s.option.rowCode }}, Стел: {{ s.option.rackCode }}, Пол: {{ s.option.shelfCode }}</span>
+                                    <span class="font-bold text-blue-600">{{ s.option.warehouse?.name || 'Склад' }}</span>
+                                    <span class="text-slate-600">Ряд: {{ s.option.rowCode }}, Стел: {{ s.option.rackCode }}, Пол: {{ s.option.shelfCode }}</span>
                                 </div>
                             </template>
                         </Select>
@@ -129,6 +137,7 @@ onMounted(loadData);
 </template>
 
 <style scoped>
-:deep(.p-select) { background: #ffffff; border: 1px solid #cbd5e1; }
-:deep(.p-inputnumber-input) { background: #ffffff; border: 1px solid #cbd5e1; }
+:deep(.p-select) { background: #ffffff !important; border: 1px solid #cbd5e1; }
+:deep(.p-inputnumber-input) { background: #ffffff !important; border: 1px solid #cbd5e1; color: #1e293b !important; }
+:deep(.p-select-label) { color: #1e293b !important; }
 </style>

@@ -3,9 +3,8 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light !important;
-  background-color: #f1f5f9; 
+  background-color: #f1f5f9;
   color: #1e293b;
-
   --p-surface-0: #ffffff !important;
   --p-surface-50: #f8fafc !important;
   --p-surface-100: #f1f5f9 !important;
@@ -17,7 +16,6 @@
   --p-surface-700: #334155 !important;
   --p-surface-800: #1e293b !important;
   --p-surface-900: #0f172a !important;
-
   --p-primary-color: #10b981 !important;
   --p-content-background: #ffffff !important;
   --p-text-color: #1e293b !important;
@@ -36,14 +34,18 @@ body {
   width: 100%;
 }
 
-.p-datatable, .p-dialog, .p-confirm-dialog, .p-toast-message, .p-select-panel, .p-inputtext, .p-inputnumber-input {
-    background: #ffffff !important;
-    color: #1e293b !important;
+.p-datatable, .p-dialog, .p-confirm-dialog, .p-toast-message, .p-select-panel, .p-inputtext, .p-inputnumber-input, .p-select-label, .p-select-option {
+  background: #ffffff !important;
+  color: #1e293b !important;
+}
+
+.p-select-label {
+  color: #1e293b !important;
 }
 
 .p-datatable .p-datatable-tbody > tr {
-    background-color: #ffffff !important;
-    color: #1e293b !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
 }
 
 .p-datatable .p-datatable-thead > tr > th {
@@ -51,33 +53,24 @@ body {
   color: #64748b !important;
 }
 
-.p-dialog .p-dialog-header {
-    background: #ffffff !important;
-    color: #1e293b !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-}
-
-.p-dialog .p-dialog-content {
-    background: #ffffff !important;
-    color: #1e293b !important;
+.p-dialog .p-dialog-header, .p-dialog .p-dialog-content {
+  background: #ffffff !important;
+  color: #1e293b !important;
 }
 
 .p-select-panel {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    color: #1e293b !important;
-    border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .p-select-item:not(.p-highlight):not(.p-disabled):hover {
-    background-color: #f1f5f9 !important;
-    color: #1e293b !important;
+  background-color: #f1f5f9 !important;
 }
 
 .p-select-item.p-highlight {
-    background-color: #ecfdf5 !important;
-    color: #10b981 !important;
+  background-color: #ecfdf5 !important;
+  color: #10b981 !important;
 }
 
 .card {
@@ -89,6 +82,6 @@ body {
 }
 
 .router-link-active {
-  background-color: #10b981 !important; 
+  background-color: #10b981 !important;
   color: white !important;
 }
