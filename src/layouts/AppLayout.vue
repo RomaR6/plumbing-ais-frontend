@@ -16,7 +16,6 @@ onMounted(() => {
 });
 
 const isAuthenticated = computed(() => !!authStore.token);
-const userName = computed(() => authStore.user || 'Гість');
 const userRole = computed(() => authStore.role || '');
 
 const userMenuItems = ref([
@@ -89,8 +88,10 @@ const logout = () => {
         <div class="header-right">
           <template v-if="isAuthenticated">
             <div class="user-profile-wrapper" @click="toggleMenu">
-              <div class="user-details">
-                <span class="user-name">{{ userName }}</span>
+              <div class="user-details text-right">
+                <span class="user-name">
+                    {{ authStore.user?.firstName }} {{ authStore.user?.lastName }}
+                </span>
                 <span class="user-role">{{ userRole }}</span>
               </div>
               <div class="user-avatar"><i class="pi pi-user"></i></div>
@@ -144,13 +145,12 @@ const logout = () => {
   text-decoration: none; 
   transition: all 0.2s;
   white-space: nowrap;
-  border-right: 4px solid transparent; /* Додаємо невидиму межу для стабільності верстки */
+  border-right: 4px solid transparent; 
 }
 .sidebar.collapsed .menu-item { justify-content: center; padding: 1rem; gap: 0; }
 .menu-item i { font-size: 1.2rem; min-width: 24px; text-align: center; }
 .menu-item:hover { background: #334155; color: white; }
 
-/* Наш власний клас активності */
 .manual-active { 
   background: #10b981 !important; 
   color: white !important; 
