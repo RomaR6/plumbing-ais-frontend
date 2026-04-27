@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const menu = ref();
 const isCollapsed = ref(false);
 
@@ -19,25 +20,12 @@ const userName = computed(() => authStore.user || 'Гість');
 const userRole = computed(() => authStore.role || '');
 
 const userMenuItems = ref([
-  {
-    label: 'Мій профіль',
-    icon: 'pi pi-user',
-    command: () => { router.push('/profile'); }
-  },
-  {
-    label: 'Вийти',
-    icon: 'pi pi-sign-out',
-    command: () => { logout(); }
-  }
+  { label: 'Мій профіль', icon: 'pi pi-user', command: () => { router.push('/profile'); } },
+  { label: 'Вийти', icon: 'pi pi-sign-out', command: () => { logout(); } }
 ]);
 
-const toggleSidebar = () => {
-  isCollapsed.value = !isCollapsed.value;
-};
-
-const toggleMenu = (event: any) => {
-  menu.value.toggle(event);
-};
+const toggleSidebar = () => { isCollapsed.value = !isCollapsed.value; };
+const toggleMenu = (event: any) => { menu.value.toggle(event); };
 
 const logout = () => {
   authStore.logout();
@@ -54,32 +42,38 @@ const logout = () => {
       </div>
       
       <nav class="menu-nav">
-        <router-link to="/" class="menu-item" v-tooltip.right="isCollapsed ? 'Товари' : null">
+        <router-link 
+          to="/" 
+          :class="['menu-item', { 'manual-active': route.path === '/' }]"
+          :active-class="'none'"
+          :exact-active-class="'none'"
+          v-tooltip.right="isCollapsed ? 'Товари' : null"
+        >
           <i class="pi pi-list"></i>
           <span v-if="!isCollapsed">Товари</span>
         </router-link>
         
-        <router-link v-if="isAuthenticated" to="/stocks" class="menu-item" v-tooltip.right="isCollapsed ? 'Склад' : null">
+        <router-link v-if="isAuthenticated" to="/stocks" class="menu-item" active-class="manual-active" v-tooltip.right="isCollapsed ? 'Склад' : null">
           <i class="pi pi-map"></i>
           <span v-if="!isCollapsed">Склад</span>
         </router-link>
 
-        <router-link v-if="isAuthenticated" to="/transactions" class="menu-item" v-tooltip.right="isCollapsed ? 'Транзакції' : null">
+        <router-link v-if="isAuthenticated" to="/transactions" class="menu-item" active-class="manual-active" v-tooltip.right="isCollapsed ? 'Транзакції' : null">
           <i class="pi pi-sync"></i>
           <span v-if="!isCollapsed">Транзакції</span>
         </router-link>
 
-        <router-link v-if="userRole === 'Admin'" to="/users" class="menu-item" v-tooltip.right="isCollapsed ? 'Персонал' : null">
+        <router-link v-if="userRole === 'Admin'" to="/users" class="menu-item" active-class="manual-active" v-tooltip.right="isCollapsed ? 'Персонал' : null">
           <i class="pi pi-users"></i>
           <span v-if="!isCollapsed">Персонал</span>
         </router-link>
 
-        <router-link v-if="userRole === 'Admin'" to="/reports" class="menu-item" v-tooltip.right="isCollapsed ? 'Аналітика' : null">
+        <router-link v-if="userRole === 'Admin'" to="/reports" class="menu-item" active-class="manual-active" v-tooltip.right="isCollapsed ? 'Аналітика' : null">
           <i class="pi pi-chart-bar"></i>
           <span v-if="!isCollapsed">Аналітика та звіти</span>
         </router-link>
 
-        <router-link v-if="userRole === 'Admin'" to="/logs" class="menu-item" v-tooltip.right="isCollapsed ? 'Журнал дій' : null">
+        <router-link v-if="userRole === 'Admin'" to="/logs" class="menu-item" active-class="manual-active" v-tooltip.right="isCollapsed ? 'Журнал дій' : null">
           <i class="pi pi-history"></i>
           <span v-if="!isCollapsed">Журнал дій</span>
         </router-link>
@@ -99,14 +93,11 @@ const logout = () => {
                 <span class="user-name">{{ userName }}</span>
                 <span class="user-role">{{ userRole }}</span>
               </div>
-              <div class="user-avatar">
-                <i class="pi pi-user"></i>
-              </div>
+              <div class="user-avatar"><i class="pi pi-user"></i></div>
               <i class="pi pi-chevron-down text-xs ml-2 text-slate-400"></i>
             </div>
             <Menu ref="menu" :model="userMenuItems" :popup="true" />
           </template>
-          
           <template v-else>
             <Button label="Увійти" icon="pi pi-sign-in" severity="info" text @click="router.push('/login')" />
           </template>
@@ -151,42 +142,32 @@ const logout = () => {
   padding: 1rem 1.5rem; 
   color: #cbd5e1; 
   text-decoration: none; 
-  transition: background 0.2s;
+  transition: all 0.2s;
   white-space: nowrap;
+  border-right: 4px solid transparent; /* Додаємо невидиму межу для стабільності верстки */
 }
 .sidebar.collapsed .menu-item { justify-content: center; padding: 1rem; gap: 0; }
 .menu-item i { font-size: 1.2rem; min-width: 24px; text-align: center; }
 .menu-item:hover { background: #334155; color: white; }
-.menu-item.router-link-active { background: #10b981; color: white; border-right: 4px solid #fff; }
+
+/* Наш власний клас активності */
+.manual-active { 
+  background: #10b981 !important; 
+  color: white !important; 
+  border-right: 4px solid #fff !important; 
+}
 
 .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: #f1f5f9; }
 .header { height: 64px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; border-bottom: 1px solid #e2e8f0; }
 .content-area { padding: 1.5rem; }
-
 .header-right { display: flex; align-items: center; }
-.user-profile-wrapper { 
-    display: flex; 
-    align-items: center; 
-    cursor: pointer; 
-    padding: 0.5rem;
-    border-radius: 8px;
-    transition: background 0.2s;
-}
+.user-profile-wrapper { display: flex; align-items: center; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s; }
 .user-profile-wrapper:hover { background: #f8fafc; }
-
 .user-details { display: flex; flex-direction: column; align-items: flex-end; margin-right: 0.75rem; line-height: 1.2; }
 .user-name { font-weight: 600; color: #1e293b; font-size: 0.9rem; }
 .user-role { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
-
 .user-avatar {
-    width: 35px;
-    height: 35px;
-    background: #ecfdf5;
-    color: #10b981;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #d1fae5;
+    width: 35px; height: 35px; background: #ecfdf5; color: #10b981; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; border: 1px solid #d1fae5;
 }
 </style>

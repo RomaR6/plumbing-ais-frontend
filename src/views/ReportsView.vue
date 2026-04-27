@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { reportService } from '../api/reportService';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 import ProgressSpinner from 'primevue/progressspinner';
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast';
+
+const router = useRouter();
+const toast = useToast();
 
 const stats = ref({
     totalValue: 0,
@@ -14,6 +21,7 @@ const stats = ref({
 
 const criticalItems = ref<any[]>([]);
 const loading = ref(true);
+const downloadLoading = ref(false);
 
 const loadReports = async () => {
     loading.value = true;
@@ -28,10 +36,39 @@ const loadReports = async () => {
         stats.value.reportDate = invRes.data.reportDate;
         criticalItems.value = invRes.data.items || [];
     } catch (e) {
-        console.error("Помилка завантаження звітів", e);
+        console.error(e);
     } finally {
         loading.value = false;
     }
+};
+
+const handleDownload = async (format: 'csv' | 'pdf') => {
+    downloadLoading.value = true;
+    try {
+        const response = format === 'csv' ? await reportService.exportCsv() : await reportService.exportPdf();
+        const blob = new Blob([response.data], { type: format === 'csv' ? 'text/csv' : 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `inventory_report_${new Date().toISOString().slice(0, 10)}.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        toast.add({ severity: 'success', summary: 'Успішно', detail: `Звіт ${format.toUpperCase()} завантажено`, life: 3000 });
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Помилка', detail: 'Не вдалося завантажити звіт', life: 3000 });
+    } finally {
+        downloadLoading.value = false;
+    }
+};
+
+const orderProduct = (product: any) => {
+    router.push({ 
+        path: '/transactions', 
+        query: { productId: product.id, type: 'In' } 
+    });
 };
 
 onMounted(loadReports);
@@ -39,10 +76,15 @@ onMounted(loadReports);
 
 <template>
     <div class="p-6 text-left">
-        <div class="mb-6 flex justify-between items-end">
+        <Toast />
+        <div class="mb-6 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-bold text-slate-800">Аналітика</h1>
+                <h1 class="text-3xl font-bold text-slate-800">Аналітика та звіти</h1>
                 <p class="text-slate-500 text-sm">Звіт про стан складу на {{ new Date().toLocaleDateString('uk-UA') }}</p>
+            </div>
+            <div class="flex gap-3">
+                <Button label="Експорт PDF" icon="pi pi-file-pdf" severity="danger" size="small" :loading="downloadLoading" @click="handleDownload('pdf')" />
+                <Button label="Експорт CSV" icon="pi pi-file-excel" severity="success" size="small" :loading="downloadLoading" @click="handleDownload('csv')" />
             </div>
         </div>
 
@@ -58,7 +100,7 @@ onMounted(loadReports);
                             <i class="pi pi-money-bill text-xl"></i>
                         </div>
                         <div>
-                            <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Вартість активів</span>
+                            <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Загальна вартість</span>
                             <div class="text-3xl font-black text-slate-800">{{ stats.totalValue.toLocaleString('uk-UA') }} грн</div>
                         </div>
                     </div>
@@ -70,8 +112,8 @@ onMounted(loadReports);
                             <i class="pi pi-exclamation-triangle text-xl"></i>
                         </div>
                         <div>
-                            <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Дефіцитні позиції</span>
-                            <div class="text-3xl font-black text-slate-800">{{ stats.criticalCount }} тов.</div>
+                            <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Критичний залишок</span>
+                            <div class="text-3xl font-black text-slate-800">{{ stats.criticalCount }} поз.</div>
                         </div>
                     </div>
                 </div>
@@ -79,7 +121,7 @@ onMounted(loadReports);
 
             <div class="card bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-slate-800">Товари, що закінчуються</h3>
+                    <h3 class="text-xl font-bold text-slate-800">Відомість дефіциту</h3>
                     <Tag value="Потребують закупівлі" severity="warn" />
                 </div>
 
@@ -87,17 +129,17 @@ onMounted(loadReports);
                     <Column field="name" header="Назва товару"></Column>
                     <Column field="sku" header="Артикул"></Column>
                     <Column field="quantity" header="Залишок">
-                        <template #body="s">
-                            <span class="text-red-600 font-bold">{{ s.data.quantity }}</span>
+                        <template #body="slotProps">
+                            <span class="text-red-600 font-bold">{{ slotProps.data.quantity }}</span>
                         </template>
                     </Column>
                     <Column header="Дія">
-                        <template #body>
-                            <Tag value="Замовити" severity="info" class="cursor-pointer" />
+                        <template #body="slotProps">
+                            <Button label="Замовити" icon="pi pi-shopping-cart" size="small" text @click="orderProduct(slotProps.data)" />
                         </template>
                     </Column>
                     <template #empty>
-                        <div class="py-4 text-slate-400">Всі товари в достатній кількості.</div>
+                        <div class="py-4 text-slate-400 text-center">Дефіцитних товарів не виявлено.</div>
                     </template>
                 </DataTable>
             </div>
