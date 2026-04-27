@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import api from '../api/axiosInstance';
+import { userService } from '../api/userService';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
@@ -13,6 +13,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { FilterMatchMode } from '@primevue/core/api';
+import api from '../api/axiosInstance';
 
 interface User {
   id: number;
@@ -45,7 +46,7 @@ const newUser = ref({
 const loadUsers = async () => {
   loading.value = true;
   try {
-    const response = await api.get('Users');
+    const response = await userService.getAll();
     users.value = response.data;
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Помилка', detail: 'Дані не завантажено' });
@@ -68,7 +69,7 @@ const registerUser = async () => {
 
 const updateRole = async (user: User) => {
   try {
-    await api.put(`Users/${user.id}/role`, { role: user.role });
+    await userService.updateRole(user.id, user.role);
     toast.add({ severity: 'success', summary: 'Оновлено', detail: 'Роль змінено' });
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Помилка', detail: 'Не вдалося оновити роль' });
@@ -86,7 +87,7 @@ const deleteUser = (id: number) => {
     rejectLabel: 'Скасувати',
     accept: async () => {
       try {
-        await api.delete(`Users/${id}`);
+        await userService.deleteUser(id);
         toast.add({ severity: 'success', summary: 'Видалено', detail: 'Користувача видалено' });
         await loadUsers();
       } catch (err: any) {

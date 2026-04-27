@@ -145,9 +145,9 @@ const executeMove = async () => {
 
 onMounted(loadData);
 
-const getStockSeverity = (quantity: number, threshold: number = 5) => {
+const getStockSeverity = (quantity: number, threshold: number) => {
     if (quantity <= 0) return 'danger';
-    if (quantity <= threshold) return 'warn';
+    if (quantity < threshold) return 'warn';
     return 'success';
 };
 </script>
@@ -201,11 +201,26 @@ const getStockSeverity = (quantity: number, threshold: number = 5) => {
                                     <span v-else class="text-slate-400">Не вказано</span>
                                 </template>
                             </Column>
-                            <Column field="quantity" header="Кількість" sortable>
+                            <Column field="quantity" header="Залишок / Поріг" sortable>
                                 <template #body="s">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-lg font-black text-slate-700">{{ s.data.quantity }}</span>
-                                        <Tag :value="s.data.quantity > 5 ? 'OK' : 'Low'" :severity="getStockSeverity(s.data.quantity)" />
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex flex-col min-w-[70px]">
+                                            <div class="flex items-baseline gap-1">
+                                                <span class="text-lg font-black text-slate-800">{{ s.data.quantity }}</span>
+                                                <span class="text-slate-400 text-xs font-medium">/ {{ s.data.product?.minThreshold || 0 }}</span>
+                                            </div>
+                                            <div class="w-full h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                                <div 
+                                                    class="h-full transition-all duration-500" 
+                                                    :class="s.data.quantity < (s.data.product?.minThreshold || 0) ? 'bg-orange-500' : 'bg-emerald-500'"
+                                                    :style="{ width: Math.min((s.data.quantity / (s.data.product?.minThreshold || 1)) * 100, 100) + '%' }"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <Tag 
+                                            :value="s.data.quantity < (s.data.product?.minThreshold || 0) ? 'Low' : 'OK'" 
+                                            :severity="getStockSeverity(s.data.quantity, s.data.product?.minThreshold || 0)" 
+                                        />
                                     </div>
                                 </template>
                             </Column>

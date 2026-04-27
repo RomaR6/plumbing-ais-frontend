@@ -17,5 +17,6 @@ export const stockService = {
     getLocations: () => api.get<Location[]>('Locations'),
     createLocation: (location: Partial<Location>) => api.post<Location>('Locations', location),
     deleteLocation: (id: number) => api.delete(`Locations/${id}`),
-    getWarehouses: () => api.get<Warehouse[]>('Warehouses')
+    getWarehouses: () => api.get<Warehouse[]>('Warehouses'),
+    updateStockManual: (id: number, stock: Stock) => api.put(`Stocks/${id}`, stock)
 };
