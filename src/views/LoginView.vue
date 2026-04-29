@@ -23,7 +23,7 @@ const handleLogin = async () => {
             password: password.value
         });
         
-        authStore.setToken(response.data.token);
+        await authStore.setToken(response.data.token);
         router.push('/');
     } catch (err: any) {
         error.value = 'Невірний логін або пароль';
@@ -39,7 +39,7 @@ const handleLogin = async () => {
             <div class="login-header">
                 <i class="pi pi-lock"></i>
                 <h1>AIS Plumbing</h1>
-                <p>Авторизація користувача</p>
+                <p>Вхід для персоналу</p>
             </div>
             
             <form @submit.prevent="handleLogin" class="login-form">
@@ -49,17 +49,13 @@ const handleLogin = async () => {
                 </div>
                 <div class="field">
                     <label>Пароль</label>
-                    <InputText v-model="password" type="password" placeholder="••••••••" class="w-full" />
+                    <InputText v-model="password" type="password" placeholder="••••••••" class="w-full" @keyup.enter="handleLogin" />
                 </div>
                 
                 <Message v-if="error" severity="error" variant="simple" size="small">{{ error }}</Message>
                 
                 <div class="actions">
                     <Button label="Увійти" icon="pi pi-sign-in" :loading="loading" type="submit" severity="success" class="w-full" />
-                    <div class="flex flex-col gap-2 mt-2">
-                        <Button label="Створити аккаунт" icon="pi pi-user-plus" text @click="router.push('/register')" class="w-full" />
-                        <Button label="Повернутися на головну" icon="pi pi-home" text severity="secondary" @click="router.push('/')" class="w-full" />
-                    </div>
                 </div>
             </form>
         </div>
@@ -117,9 +113,6 @@ const handleLogin = async () => {
     color: #475569;
 }
 .actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
 }
 </style>

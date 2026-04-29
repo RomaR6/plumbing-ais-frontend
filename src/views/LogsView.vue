@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import api from '../api/axiosInstance';
+import { invoiceService } from '../api/invoiceService';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 
@@ -30,15 +32,31 @@ const loadLogs = async () => {
   }
 };
 
+const printInvoiceFromLog = async (actionText: string) => {
+  const match = actionText.match(/ID:?\s*(\d+)/i);
+  
+  if (match && match[1]) {
+    try {
+      await invoiceService.downloadInvoice(parseInt(match[1]));
+      toast.add({ severity: 'success', summary: 'Успішно', detail: 'Завантаження розпочато' });
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Помилка', detail: 'Файл не знайдено на сервері' });
+    }
+  } else {
+    toast.add({ severity: 'warn', summary: 'Увага', detail: 'ID транзакції не знайдено в описі' });
+  }
+};
+
 const formatDate = (d: string) => {
   return new Date(d).toLocaleString('uk-UA');
 };
 
 const getActionSeverity = (action: string) => {
-  if (action.includes('Видалення') || action.includes('Delete')) return 'danger';
-  if (action.includes('Оновлення') || action.includes('Update') || action.includes('Зміна')) return 'warn';
-  if (action.includes('Створення') || action.includes('Create') || action.includes('реєстрація')) return 'success';
-  if (action.includes('Вхід')) return 'secondary';
+  const a = action.toLowerCase();
+  if (a.includes('видалення') || a.includes('delete')) return 'danger';
+  if (a.includes('оновлення') || a.includes('update') || a.includes('зміна')) return 'warn';
+  if (a.includes('створення') || a.includes('create') || a.includes('реєстрація')) return 'success';
+  if (a.includes('вхід')) return 'secondary';
   return 'info';
 };
 
@@ -54,7 +72,7 @@ onMounted(loadLogs);
         <p class="text-slate-500 text-sm">Історія операцій користувачів у системі</p>
       </div>
 
-      <DataTable :value="logs" :loading="loading" paginator :rows="15" class="p-datatable-sm">
+      <DataTable :value="logs" :loading="loading" paginator :rows="15" class="p-datatable-sm" sortField="timestamp" :sortOrder="-1">
         <Column field="timestamp" header="Час" sortable>
           <template #body="s">{{ formatDate(s.data.timestamp) }}</template>
         </Column>
@@ -65,7 +83,14 @@ onMounted(loadLogs);
         </Column>
         <Column field="action" header="Дія">
           <template #body="s">
-            <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" />
+            <div class="flex justify-between items-center text-left">
+              <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" />
+              <Button v-if="s.data.action.toLowerCase().includes('транзакція') || s.data.action.includes('ID:')" 
+                      icon="pi pi-print" 
+                      text rounded 
+                      class="p-button-sm ml-2"
+                      @click="printInvoiceFromLog(s.data.action)" />
+            </div>
           </template>
         </Column>
       </DataTable>

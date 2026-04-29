@@ -48,6 +48,17 @@ export interface Stock {
     locationName?: string;
 }
 
+export interface TransactionItem {
+    id?: number;
+    transactionId?: number;
+    productId: number;
+    locationId: number;
+    quantity: number;
+    price: number;
+    product?: Product;
+    location?: Location;
+}
+
 export interface Transaction {
     id: number;
     type: string;
@@ -55,8 +66,20 @@ export interface Transaction {
     contractorId?: number;
     date: string;
     documentNumber: string;
-    user?: any;
-    contractor?: Contractor;
+    description?: string;
+    transactionItems?: TransactionItem[];
+}
+
+export interface TransactionGroupRequest {
+    type: string;
+    contractorId?: number | null;
+    description?: string;
+    items: {
+        productId: number;
+        locationId: number;
+        quantity: number;
+        price: number;
+    }[];
 }
 
 export interface Contractor {

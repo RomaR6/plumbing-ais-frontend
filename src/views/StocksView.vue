@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { stockService } from '../api/stockService';
+import { invoiceService } from '../api/invoiceService';
 import { useAuthStore } from '../stores/auth';
 import type { Stock, Location } from '../types';
 
@@ -33,6 +34,8 @@ const loading = ref(true);
 const locationDialog = ref(false);
 const moveDialog = ref(false);
 const submitting = ref(false);
+const showSuccessDialog = ref(false);
+const lastTransactionId = ref<number | null>(null);
 
 const isAdmin = computed(() => authStore.role === 'Admin');
 
@@ -127,19 +130,39 @@ const executeMove = async () => {
     if (!moveData.value.productId || !moveData.value.fromLocationId || !moveData.value.toLocationId) return;
     submitting.value = true;
     try {
-        await stockService.moveStock(
+        const fromStock = stocks.value.find(s => s.locationId === moveData.value.fromLocationId && s.productId === moveData.value.productId);
+        const toLoc = locations.value.find(l => l.id === moveData.value.toLocationId);
+        
+        const description = `Переміщення: ${fromStock?.location?.warehouse?.name} (${fromStock?.location?.rowCode}-${fromStock?.location?.rackCode}-${fromStock?.location?.shelfCode}) → ${toLoc?.warehouse?.name} (${toLoc?.rowCode}-${toLoc?.rackCode}-${toLoc?.shelfCode})`;
+
+        const response = await stockService.moveStock(
             moveData.value.productId, 
             moveData.value.fromLocationId, 
             moveData.value.toLocationId, 
-            moveData.value.quantity
+            moveData.value.quantity,
+            description
         );
+        
         toast.add({ severity: 'success', summary: 'Успішно', detail: 'Товар переміщено' });
         moveDialog.value = false;
         await loadData();
+
+        if (response.data && response.data.transactionId) {
+            lastTransactionId.value = response.data.transactionId;
+            showSuccessDialog.value = true;
+        }
     } catch (e: any) {
-        toast.add({ severity: 'error', summary: 'Помилка', detail: e.response?.data?.message || 'Помилка переміщення' });
+        const errorMsg = e.response?.data?.message || 'Помилка переміщення (недостатньо товару)';
+        toast.add({ severity: 'error', summary: 'Помилка', detail: errorMsg });
     } finally {
         submitting.value = false;
+    }
+};
+
+const downloadLastInvoice = async () => {
+    if (lastTransactionId.value) {
+        await invoiceService.downloadInvoice(lastTransactionId.value);
+        showSuccessDialog.value = false;
     }
 };
 
@@ -156,6 +179,14 @@ const getStockSeverity = (quantity: number, threshold: number) => {
     <div class="p-6 text-left">
         <Toast />
         <ConfirmDialog />
+
+        <Dialog v-model:visible="showSuccessDialog" modal header="Переміщення завершено" :style="{ width: '25rem' }">
+            <p class="mb-4">Бажаєте завантажити PDF акт внутрішнього переміщення?</p>
+            <div class="flex justify-end gap-2">
+                <Button label="Пізніше" severity="secondary" @click="showSuccessDialog = false" />
+                <Button label="Завантажити PDF" icon="pi pi-file-pdf" @click="downloadLastInvoice" />
+            </div>
+        </Dialog>
         
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-slate-800 text-left">Управління складом</h1>
@@ -289,14 +320,7 @@ const getStockSeverity = (quantity: number, threshold: number) => {
             <div class="flex flex-col gap-4">
                 <div class="field">
                     <label class="font-bold block mb-2 text-slate-700">Товар</label>
-                    <Select 
-                        v-model="moveData.productId" 
-                        :options="stocks" 
-                        optionLabel="product.name" 
-                        optionValue="productId" 
-                        placeholder="Оберіть товар" 
-                        filter 
-                    >
+                    <Select v-model="moveData.productId" :options="stocks" optionLabel="product.name" optionValue="productId" placeholder="Оберіть товар" filter>
                         <template #option="slotProps">
                             <div class="flex flex-col">
                                 <span class="font-bold">{{ slotProps.option.product?.name }}</span>
@@ -305,68 +329,47 @@ const getStockSeverity = (quantity: number, threshold: number) => {
                         </template>
                     </Select>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     <div class="field">
                         <label class="font-bold block mb-2 text-slate-700">З локації</label>
-                        <Select 
-                            v-model="moveData.fromLocationId" 
-                            :options="stocks.filter(s => s.productId === moveData.productId)" 
-                            optionValue="locationId" 
-                            :placeholder="moveData.productId ? 'Звідки' : 'Оберіть товар'"
-                            :disabled="!moveData.productId"
-                        >
+                        <Select v-model="moveData.fromLocationId" :options="stocks.filter(s => s.productId === moveData.productId)" optionValue="locationId" :placeholder="moveData.productId ? 'Звідки' : 'Оберіть товар'" :disabled="!moveData.productId">
                             <template #option="s">
                                 <span>Ряд: {{ s.option.location?.rowCode }} | Стел: {{ s.option.location?.rackCode }} | Пол: {{ s.option.location?.shelfCode }}</span>
                             </template>
                             <template #value="s">
                                 <div v-if="s.value">
-                                    {{ 
-                                        (() => {
+                                    {{ (() => {
                                             const item = stocks.find(x => x.locationId === s.value && x.productId === moveData.productId);
                                             return item ? `Ряд: ${item.location?.rowCode} | Стел: ${item.location?.rackCode} | Пол: ${item.location?.shelfCode}` : 'Звідки';
-                                        })()
-                                    }}
+                                        })() }}
                                 </div>
                                 <span v-else>{{ s.placeholder }}</span>
                             </template>
                         </Select>
                     </div>
-
                     <div class="field">
                         <label class="font-bold block mb-2 text-slate-700">В локацію</label>
-                        <Select 
-                            v-model="moveData.toLocationId" 
-                            :options="locations" 
-                            optionValue="id" 
-                            placeholder="Куди" 
-                            filter
-                            :disabled="!moveData.productId"
-                        >
+                        <Select v-model="moveData.toLocationId" :options="locations" optionValue="id" placeholder="Куди" filter :disabled="!moveData.productId">
                             <template #option="l">
                                 <span>Ряд: {{ l.option.rowCode }} | Стел: {{ l.option.rackCode }} | Пол: {{ l.option.shelfCode }}</span>
                             </template>
                             <template #value="l">
                                 <div v-if="l.value">
-                                    {{ 
-                                        (() => {
+                                    {{ (() => {
                                             const item = locations.find(x => x.id === l.value);
                                             return item ? `Ряд: ${item.rowCode} | Стел: ${item.rackCode} | Пол: ${item.shelfCode}` : 'Куди';
-                                        })()
-                                    }}
+                                        })() }}
                                 </div>
                                 <span v-else>{{ l.placeholder }}</span>
                             </template>
                         </Select>
                     </div>
                 </div>
-
                 <div class="field">
                     <label class="font-bold block mb-2 text-slate-700">Кількість</label>
                     <InputNumber v-model="moveData.quantity" :min="1" showButtons :disabled="!moveData.productId" />
                 </div>
             </div>
-            
             <template #footer>
                 <Button label="Скасувати" icon="pi pi-times" text @click="moveDialog = false" />
                 <Button label="Виконати" icon="pi pi-directions" severity="warning" :loading="submitting" @click="executeMove" :disabled="!moveData.fromLocationId || !moveData.toLocationId" />

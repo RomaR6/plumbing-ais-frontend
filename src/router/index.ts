@@ -18,13 +18,9 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue')
     },
     {
-      path: '/register',
-      name: 'register',
-      component: () => import('../views/RegisterView.vue')
-    },
-    {
       path: '/',
       component: AppLayout,
+      meta: { requiresAuth: true },
       children: [
         { 
           path: '', 
@@ -35,56 +31,64 @@ const router = createRouter({
           path: 'stocks', 
           name: 'stocks', 
           component: () => import('../views/StocksView.vue'),
-          meta: { requiresAuth: true, roles: ['Admin', 'Manager'] } 
+          meta: { roles: ['Admin', 'Manager'] } 
         },
         { 
           path: 'transactions', 
           name: 'transactions', 
           component: () => import('../views/TransactionsView.vue'),
-          meta: { requiresAuth: true, roles: ['Admin', 'Manager'] } 
+          meta: { roles: ['Admin', 'Manager'] } 
         },
         { 
           path: 'users', 
           name: 'users', 
           component: () => import('../views/UsersView.vue'),
-          meta: { requiresAuth: true, roles: ['Admin'] } 
+          meta: { roles: ['Admin'] } 
         },
         { 
           path: 'reports', 
           name: 'reports', 
           component: () => import('../views/ReportsView.vue'),
-          meta: { requiresAuth: true, roles: ['Admin'] } 
+          meta: { roles: ['Admin'] } 
         },
         { 
           path: 'logs', 
           name: 'logs', 
           component: () => import('../views/LogsView.vue'),
-          meta: { requiresAuth: true, roles: ['Admin'] } 
+          meta: { roles: ['Admin'] } 
         },
-        {
-          path: 'profile',
-          name: 'profile',
-          component: () => import('../views/ProfileView.vue'),
-          meta: { requiresAuth: true }
+        { 
+          path: 'profile', 
+          name: 'profile', 
+          component: () => import('../views/ProfileView.vue')
         }
       ]
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/'
     }
   ]
 })
 
-router.beforeEach((to, _, next) => {
+router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();
+  
   if (!authStore.token && localStorage.getItem('token')) {
-    authStore.init();
+    await authStore.init();
   }
+  
   const isAuthenticated = !!authStore.token;
   const userRole = authStore.role || '';
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login');
+  if (to.name !== 'login' && !isAuthenticated) {
+    next({ name: 'login' });
   } 
+  else if (to.name === 'login' && isAuthenticated) {
+    next({ name: 'products' });
+  }
   else if (to.meta.roles && !to.meta.roles.includes(userRole)) {
-    next('/');
+    next({ name: 'products' });
   } 
   else {
     next();

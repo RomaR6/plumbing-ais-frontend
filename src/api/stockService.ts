@@ -1,17 +1,19 @@
 import api from './axiosInstance';
-import type { Stock, Location, Warehouse } from '../types';
+import type { Stock, Location, Warehouse, TransactionGroupRequest } from '../types';
 
 export const stockService = {
     getAllStocks: () => api.get<Stock[]>('Stocks'),
     
-    createTransaction: (productId: number, locationId: number, quantity: number, type: string, contractorId?: number) => 
-        api.post('Stocks/transaction', null, { 
-            params: { productId, locationId, quantity, type, contractorId } 
-        }),
+    createTransaction: (data: TransactionGroupRequest) => 
+        api.post('Stocks/transaction', data),
 
-    moveStock: (productId: number, fromLocationId: number, toLocationId: number, quantity: number) =>
-        api.post('Stocks/move', null, { 
-            params: { productId, fromLocationId, toLocationId, quantity } 
+    moveStock: (productId: number, fromLocationId: number, toLocationId: number, quantity: number, description?: string) =>
+        api.post('Stocks/move', { 
+            productId, 
+            fromLocationId, 
+            toLocationId, 
+            quantity,
+            description
         }),
 
     getLocations: () => api.get<Location[]>('Locations'),
