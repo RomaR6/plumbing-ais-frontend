@@ -50,6 +50,9 @@ const filters = ref({
 });
 
 const isAdmin = computed(() => authStore.role === 'Admin');
+const isManager = computed(() => authStore.role === 'Manager');
+const canManageStructure = computed(() => isAdmin.value);
+const canMoveStock = computed(() => isAdmin.value || isManager.value);
 
 const uniqueRows = computed(() => [...new Set(locations.value.map(l => l.rowCode))].sort());
 const uniqueRacks = computed(() => [...new Set(locations.value.map(l => l.rackCode))].sort());
@@ -190,199 +193,173 @@ const getStockSeverity = (quantity: number, threshold: number) => {
 </script>
 
 <template>
-    <div class="p-6 text-left">
+    <div class="p-3 md:p-6 text-left">
         <Toast />
         <ConfirmDialog />
 
-        <Dialog v-model:visible="showSuccessDialog" modal header="Переміщення завершено" :style="{ width: '25rem' }">
+        <Dialog v-model:visible="showSuccessDialog" modal header="Переміщення завершено" :style="{ width: '90vw', maxWidth: '25rem' }">
             <p class="mb-4">Бажаєте завантажити PDF акт внутрішнього переміщення?</p>
             <div class="flex justify-end gap-2">
                 <Button label="Пізніше" severity="secondary" @click="showSuccessDialog = false" />
-                <Button label="Завантажити PDF" icon="pi pi-file-pdf" @click="downloadLastInvoice" />
+                <Button label="Завантажити" icon="pi pi-file-pdf" @click="downloadLastInvoice" />
             </div>
         </Dialog>
         
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-slate-800 text-left">Управління складом</h1>
-            <p class="text-slate-500 text-sm">Облік залишків, керування локаціями та переміщеннями</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 text-left">Управління складом</h1>
+            <p class="text-slate-500 text-xs md:text-sm">Облік залишків, керування локаціями та переміщеннями</p>
         </div>
 
         <div class="card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <Tabs value="0">
-                <TabList>
-                    <Tab value="0"><i class="pi pi-box mr-2"></i> Поточні залишки</Tab>
-                    <Tab value="1"><i class="pi pi-map-marker mr-2"></i> Адресне зберігання (Локації)</Tab>
+                <TabList class="overflow-x-auto">
+                    <Tab value="0" class="text-sm"><i class="pi pi-box mr-2"></i> Залишки</Tab>
+                    <Tab v-if="canManageStructure" value="1" class="text-sm"><i class="pi pi-map-marker mr-2"></i> Локації</Tab>
                 </TabList>
 
                 <TabPanels>
                     <TabPanel value="0">
-                        <div class="flex justify-between items-center mb-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                             <h3 class="text-lg font-bold text-slate-700">Товари на складах</h3>
-                            <div class="flex gap-2">
-                                <Button label="Прихід/Видаток" icon="pi pi-sync" severity="primary" size="small" @click="$router.push('/transactions')" />
-                                <Button label="Перемістити" icon="pi pi-directions" severity="secondary" size="small" @click="openMoveDialog" />
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <Button label="Транзакція" icon="pi pi-sync" severity="primary" size="small" class="flex-1 md:flex-initial" @click="$router.push('/transactions')" />
+                                <Button v-if="canMoveStock" label="Перемістити" icon="pi pi-directions" severity="secondary" size="small" class="flex-1 md:flex-initial" @click="openMoveDialog" />
                             </div>
                         </div>
 
-                        <div class="flex flex-wrap gap-3 mb-4 items-center">
-                            <IconField iconPosition="left" style="width: 250px;">
+                        <div class="flex flex-col lg:flex-row flex-wrap gap-3 mb-4">
+                            <IconField iconPosition="left" class="w-full lg:w-64">
                                 <InputIcon class="pi pi-search" />
                                 <InputText v-model="filters['global'].value" placeholder="Пошук..." class="w-full" />
                             </IconField>
-                            <Select v-model="filters['location.warehouse.name'].value" :options="warehouses" optionLabel="name" optionValue="name" placeholder="Склад" showClear class="w-48" />
-                            <Select v-model="filters['location.rowCode'].value" :options="uniqueRows" placeholder="Ряд" showClear class="w-24" />
-                            <Select v-model="filters['location.rackCode'].value" :options="uniqueRacks" placeholder="Стел." showClear class="w-24" />
-                            <ToggleButton v-model="showOnlyLowStock" onLabel="Тільки дефіцит" offLabel="Усі залишки" onIcon="pi pi-exclamation-triangle" offIcon="pi pi-filter" class="w-48" />
+                            <div class="grid grid-cols-2 md:flex md:flex-wrap gap-3 w-full lg:w-auto">
+                                <Select v-model="filters['location.warehouse.name'].value" :options="warehouses" optionLabel="name" optionValue="name" placeholder="Склад" showClear class="w-full md:w-48" />
+                                <Select v-model="filters['location.rowCode'].value" :options="uniqueRows" placeholder="Ряд" showClear class="w-full md:w-24" />
+                                <Select v-model="filters['location.rackCode'].value" :options="uniqueRacks" placeholder="Стел." showClear class="w-full md:w-24" />
+                                <ToggleButton v-model="showOnlyLowStock" onLabel="Дефіцит" offLabel="Усі" onIcon="pi pi-exclamation-triangle" offIcon="pi pi-filter" class="w-full md:w-36" />
+                            </div>
                         </div>
 
-                        <DataTable 
-                            :value="filteredStocks" 
-                            :loading="loading" 
-                            v-model:filters="filters"
-                            :globalFilterFields="['product.sku', 'product.name']"
-                            paginator :rows="10" 
-                            class="p-datatable-sm"
-                        >
-                            <Column field="product.sku" header="Артикул" sortable>
-                                <template #body="s">
-                                    <span class="font-mono text-xs font-bold text-slate-600">{{ s.data.product?.sku || 'N/A' }}</span>
-                                </template>
-                            </Column>
-                            <Column field="product.name" header="Товар" sortable>
-                                <template #body="s">
-                                    <span class="font-semibold text-slate-700">{{ s.data.product?.name || 'N/A' }}</span>
-                                </template>
-                            </Column>
-                            <Column header="Локація">
-                                <template #body="s">
-                                    <div v-if="s.data.location" class="flex flex-col text-left">
-                                        <span class="font-bold text-blue-600 text-xs uppercase">{{ s.data.location.warehouse?.name || 'Склад' }}</span>
-                                        <span class="text-slate-500 text-sm font-medium uppercase">
-                                            Ряд: {{ s.data.location.rowCode }} | Стел: {{ s.data.location.rackCode }} | Пол: {{ s.data.location.shelfCode }}
-                                        </span>
-                                    </div>
-                                    <span v-else class="text-slate-400">Не вказано</span>
-                                </template>
-                            </Column>
-                            <Column field="quantity" header="Залишок / Поріг" sortable>
-                                <template #body="s">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex flex-col min-w-[70px]">
-                                            <div class="flex items-baseline gap-1">
-                                                <span class="text-lg font-black text-slate-800">{{ s.data.quantity }}</span>
-                                                <span class="text-slate-400 text-xs font-medium">/ {{ s.data.product?.minThreshold || 0 }}</span>
-                                            </div>
-                                            <div class="w-full h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
-                                                <div 
-                                                    class="h-full transition-all duration-500" 
-                                                    :class="s.data.quantity < (s.data.product?.minThreshold || 0) ? 'bg-orange-500' : 'bg-emerald-500'"
-                                                    :style="{ width: Math.min((s.data.quantity / (s.data.product?.minThreshold || 1)) * 100, 100) + '%' }"
-                                                ></div>
-                                            </div>
+                        <div class="overflow-x-auto">
+                            <DataTable 
+                                :value="filteredStocks" 
+                                :loading="loading" 
+                                v-model:filters="filters"
+                                :globalFilterFields="['product.sku', 'product.name']"
+                                paginator :rows="10" 
+                                class="p-datatable-sm"
+                                tableStyle="min-width: 50rem"
+                            >
+                                <Column field="product.sku" header="Арт." sortable class="font-mono text-[10px] md:text-xs"></Column>
+                                <Column field="product.name" header="Товар" sortable class="text-sm"></Column>
+                                <Column header="Локація">
+                                    <template #body="s">
+                                        <div v-if="s.data.location" class="flex flex-col text-left">
+                                            <span class="font-bold text-blue-600 text-[10px] uppercase">{{ s.data.location.warehouse?.name }}</span>
+                                            <span class="text-slate-500 text-xs font-medium uppercase">
+                                                {{ s.data.location.rowCode }}-{{ s.data.location.rackCode }}-{{ s.data.location.shelfCode }}
+                                            </span>
                                         </div>
-                                        <Tag :value="s.data.quantity < (s.data.product?.minThreshold || 0) ? 'Low' : 'OK'" :severity="getStockSeverity(s.data.quantity, s.data.product?.minThreshold || 0)" />
-                                    </div>
-                                </template>
-                            </Column>
-                        </DataTable>
+                                    </template>
+                                </Column>
+                                <Column field="quantity" header="Залишок" sortable>
+                                    <template #body="s">
+                                        <div class="flex items-center gap-2">
+                                            <Tag :value="s.data.quantity" :severity="getStockSeverity(s.data.quantity, s.data.product?.minThreshold || 0)" class="text-xs" />
+                                            <span class="text-[10px] text-slate-400">/ {{ s.data.product?.minThreshold || 0 }}</span>
+                                        </div>
+                                    </template>
+                                </Column>
+                            </DataTable>
+                        </div>
                     </TabPanel>
 
-                    <TabPanel value="1">
+                    <TabPanel v-if="canManageStructure" value="1">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-lg font-bold text-slate-700">Список адрес зберігання</h3>
-                            <Button v-if="isAdmin" label="Додати локацію" icon="pi pi-plus" severity="success" size="small" @click="openNewLocation" />
+                            <h3 class="text-lg font-bold text-slate-700">Адреси</h3>
+                            <Button v-if="isAdmin" label="Додати" icon="pi pi-plus" severity="success" size="small" @click="openNewLocation" />
                         </div>
-                        <DataTable :value="locations" :loading="loading" class="p-datatable-sm" paginator :rows="10">
-                            <Column field="warehouse.name" header="Склад">
-                                <template #body="s">
-                                    <span class="font-bold text-slate-700">{{ s.data.warehouse?.name || 'Головний' }}</span>
-                                </template>
-                            </Column>
-                            <Column field="rowCode" header="Ряд"></Column>
-                            <Column field="rackCode" header="Стелаж"></Column>
-                            <Column field="shelfCode" header="Полиця"></Column>
-                            <Column header="Адресний код">
-                                <template #body="s">
-                                    <span class="p-1.5 px-3 bg-slate-100 rounded-md text-xs font-black text-slate-600 border border-slate-200 uppercase">
-                                        Ряд: {{ s.data.rowCode }} | Стел: {{ s.data.rackCode }} | Пол: {{ s.data.shelfCode }}
-                                    </span>
-                                </template>
-                            </Column>
-                            <Column v-if="isAdmin" header="Дії" style="width: 50px">
-                                <template #body="s">
-                                    <Button icon="pi pi-trash" severity="danger" text rounded @click="confirmDeleteLocation(s.data.id)" />
-                                </template>
-                            </Column>
-                        </DataTable>
+                        <div class="overflow-x-auto">
+                            <DataTable :value="locations" :loading="loading" class="p-datatable-sm" paginator :rows="10" tableStyle="min-width: 40rem">
+                                <Column field="warehouse.name" header="Склад" class="text-sm"></Column>
+                                <Column field="rowCode" header="Ряд" class="text-sm"></Column>
+                                <Column field="rackCode" header="Стел." class="text-sm"></Column>
+                                <Column field="shelfCode" header="Пол." class="text-sm"></Column>
+                                <Column v-if="isAdmin" header="Дії" class="w-20">
+                                    <template #body="s">
+                                        <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteLocation(s.data.id)" />
+                                    </template>
+                                </Column>
+                            </DataTable>
+                        </div>
                     </TabPanel>
                 </TabPanels>
             </Tabs>
         </div>
 
-        <Dialog v-model:visible="locationDialog" header="Нова локація" modal class="p-fluid" style="width: 450px">
-            <div class="field mb-4 text-left">
-                <label class="font-bold block mb-2 text-slate-700">Склад</label>
-                <Select v-model="newLocation.warehouseId" :options="warehouses" optionLabel="name" optionValue="id" placeholder="Оберіть склад" />
-            </div>
-            <div class="grid grid-cols-3 gap-4 text-left">
+        <Dialog v-model:visible="locationDialog" header="Нова локація" modal class="p-fluid w-[95vw] md:w-[450px]">
+            <div class="flex flex-col gap-4 py-2">
                 <div class="field">
-                    <label class="font-bold block mb-2 text-slate-700">Ряд</label>
-                    <InputText v-model="newLocation.rowCode" placeholder="A" />
+                    <label class="font-bold text-xs text-slate-700 mb-1 block">Склад</label>
+                    <Select v-model="newLocation.warehouseId" :options="warehouses" optionLabel="name" optionValue="id" placeholder="Оберіть склад" />
                 </div>
-                <div class="field">
-                    <label class="font-bold block mb-2 text-slate-700">Стел.</label>
-                    <InputText v-model="newLocation.rackCode" placeholder="1" />
-                </div>
-                <div class="field">
-                    <label class="font-bold block mb-2 text-slate-700">Пол.</label>
-                    <InputText v-model="newLocation.shelfCode" placeholder="1" />
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="field">
+                        <label class="font-bold text-xs text-slate-700 mb-1 block">Ряд</label>
+                        <InputText v-model="newLocation.rowCode" placeholder="A" />
+                    </div>
+                    <div class="field">
+                        <label class="font-bold text-xs text-slate-700 mb-1 block">Стел.</label>
+                        <InputText v-model="newLocation.rackCode" placeholder="1" />
+                    </div>
+                    <div class="field">
+                        <label class="font-bold text-xs text-slate-700 mb-1 block">Пол.</label>
+                        <InputText v-model="newLocation.shelfCode" placeholder="1" />
+                    </div>
                 </div>
             </div>
             <template #footer>
-                <Button label="Скасувати" icon="pi pi-times" text @click="locationDialog = false" />
-                <Button label="Зберегти" icon="pi pi-check" :loading="submitting" @click="saveLocation" />
+                <div class="flex gap-2 justify-end">
+                    <Button label="Скасувати" text @click="locationDialog = false" />
+                    <Button label="Зберегти" severity="success" :loading="submitting" @click="saveLocation" />
+                </div>
             </template>
         </Dialog>
 
-        <Dialog v-model:visible="moveDialog" header="Переміщення товару" modal class="p-fluid" style="width: 550px">
-            <div class="flex flex-col gap-4 text-left">
+        <Dialog v-model:visible="moveDialog" header="Переміщення" modal class="p-fluid w-[95vw] md:w-[550px]">
+            <div class="flex flex-col gap-4 py-2">
                 <div class="field">
-                    <label class="font-bold block mb-2 text-slate-700">Товар</label>
-                    <Select v-model="moveData.productId" :options="stocks" optionLabel="product.name" optionValue="productId" placeholder="Оберіть товар" filter>
-                        <template #option="slotProps">
-                            <div class="flex flex-col">
-                                <span class="font-bold">{{ slotProps.option.product?.name }}</span>
-                                <small class="text-slate-500">Залишок: {{ slotProps.option.quantity }}</small>
-                            </div>
-                        </template>
-                    </Select>
+                    <label class="font-bold text-xs text-slate-700 mb-1 block">Товар</label>
+                    <Select v-model="moveData.productId" :options="stocks" optionLabel="product.name" optionValue="productId" placeholder="Оберіть товар" filter />
                 </div>
-                <div class="grid grid-cols-2 gap-4 text-left">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="field">
-                        <label class="font-bold block mb-2 text-slate-700">З локації</label>
-                        <Select v-model="moveData.fromLocationId" :options="stocks.filter(s => s.productId === moveData.productId)" optionValue="locationId" :placeholder="moveData.productId ? 'Звідки' : 'Оберіть товар'" :disabled="!moveData.productId">
+                        <label class="font-bold text-xs text-slate-700 mb-1 block">Звідки</label>
+                        <Select v-model="moveData.fromLocationId" :options="stocks.filter(s => s.productId === moveData.productId)" optionValue="locationId" :disabled="!moveData.productId">
                             <template #option="s">
-                                <span>Ряд: {{ s.option.location?.rowCode }} | Стел: {{ s.option.location?.rackCode }} | Пол: {{ s.option.location?.shelfCode }}</span>
+                                <span class="text-xs">{{ s.option.location?.rowCode }}-{{ s.option.location?.rackCode }}-{{ s.option.location?.shelfCode }}</span>
                             </template>
                         </Select>
                     </div>
                     <div class="field">
-                        <label class="font-bold block mb-2 text-slate-700">В локацію</label>
-                        <Select v-model="moveData.toLocationId" :options="locations" optionValue="id" placeholder="Куди" filter :disabled="!moveData.productId">
+                        <label class="font-bold text-xs text-slate-700 mb-1 block">Куди</label>
+                        <Select v-model="moveData.toLocationId" :options="locations" optionValue="id" filter :disabled="!moveData.productId">
                             <template #option="l">
-                                <span>Ряд: {{ l.option.rowCode }} | Стел: {{ l.option.rackCode }} | Пол: {{ l.option.shelfCode }}</span>
+                                <span class="text-xs">{{ l.option.rowCode }}-{{ l.option.rackCode }}-{{ l.option.shelfCode }}</span>
                             </template>
                         </Select>
                     </div>
                 </div>
                 <div class="field">
-                    <label class="font-bold block mb-2 text-slate-700">Кількість</label>
+                    <label class="font-bold text-xs text-slate-700 mb-1 block">Кількість</label>
                     <InputNumber v-model="moveData.quantity" :min="1" showButtons :disabled="!moveData.productId" />
                 </div>
             </div>
             <template #footer>
-                <Button label="Скасувати" icon="pi pi-times" text @click="moveDialog = false" />
-                <Button label="Виконати" icon="pi pi-directions" severity="warning" :loading="submitting" @click="executeMove" :disabled="!moveData.fromLocationId || !moveData.toLocationId" />
+                <div class="flex gap-2 justify-end">
+                    <Button label="Скасувати" text @click="moveDialog = false" />
+                    <Button label="Виконати" severity="warning" :loading="submitting" @click="executeMove" :disabled="!moveData.fromLocationId || !moveData.toLocationId" />
+                </div>
             </template>
         </Dialog>
     </div>
@@ -390,7 +367,8 @@ const getStockSeverity = (quantity: number, threshold: number) => {
 
 <style scoped>
 :deep(.p-tablist-tab-list) { border-bottom: 1px solid #e2e8f0; background-color: #f8fafc; }
-:deep(.p-tabpanels) { padding: 1.5rem; }
-:deep(.p-datatable-thead > tr > th) { background-color: #f8fafc; color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.025em; }
-:deep(.p-dialog-content) { padding-top: 1rem !important; overflow-y: visible !important; }
-</style>
+:deep(.p-tabpanels) { padding: 1rem; }
+@media (min-width: 768px) { :deep(.p-tabpanels) { padding: 1.5rem; } }
+:deep(.p-datatable-thead > tr > th) { background-color: #f8fafc; color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.025em; }
+:deep(.p-dialog-content) { padding: 1rem !important; overflow-y: visible !important; }
+</style>```

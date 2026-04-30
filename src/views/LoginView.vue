@@ -22,7 +22,6 @@ const handleLogin = async () => {
             username: username.value,
             password: password.value
         });
-        
         await authStore.setToken(response.data.token);
         router.push('/');
     } catch (err: any) {
@@ -69,10 +68,11 @@ const handleLogin = async () => {
     justify-content: center;
     min-height: 100vh;
     background-color: #f1f5f9;
+    padding: 1rem;
 }
 .login-card {
     background: white;
-    padding: 2.5rem;
+    padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     width: 100%;
@@ -114,5 +114,13 @@ const handleLogin = async () => {
 }
 .actions {
     margin-top: 1rem;
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 1.5rem;
+        box-shadow: none;
+        border: 1px solid #e2e8f0;
+    }
 }
 </style>

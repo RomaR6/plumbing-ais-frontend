@@ -55,8 +55,6 @@ const loadData = async () => {
             transactionType.value = type;
             currentItem.value.productId = pId;
             currentItem.value.quantity = qty;
-            
-            // ВИДАЛЕНО: toast.add({...}) - повідомлення про Smart Order більше не з'являтиметься
         }
     } catch (e) {
         toast.add({ severity: 'error', summary: 'Помилка', detail: 'Дані не завантажено' });
@@ -129,23 +127,23 @@ onMounted(loadData);
 </script>
 
 <template>
-    <div class="p-6 max-w-6xl mx-auto text-left">
+    <div class="p-3 md:p-6 max-w-6xl mx-auto text-left">
         <Toast />
         
-        <Dialog v-model:visible="showSuccessDialog" modal header="Транзакція завершена" :style="{ width: '25rem' }">
+        <Dialog v-model:visible="showSuccessDialog" modal header="Транзакція завершена" :style="{ width: '90vw', maxWidth: '25rem' }">
             <p class="mb-4">Бажаєте завантажити PDF накладну для цієї операції?</p>
             <div class="flex justify-end gap-2">
                 <Button label="Пізніше" severity="secondary" @click="showSuccessDialog = false" />
-                <Button label="Завантажити PDF" icon="pi pi-file-pdf" @click="downloadLastInvoice" />
+                <Button label="Завантажити" icon="pi pi-file-pdf" @click="downloadLastInvoice" />
             </div>
         </Dialog>
 
-        <div class="mb-6 flex justify-between items-end">
+        <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-slate-800">Нова накладна</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Нова накладна</h1>
                 <p class="text-slate-500 text-sm">Групова реєстрація руху товарів</p>
             </div>
-            <Select v-model="transactionType" :options="transactionTypes" optionLabel="label" optionValue="value" class="w-48" />
+            <Select v-model="transactionType" :options="transactionTypes" optionLabel="label" optionValue="value" class="w-full sm:w-48" />
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -168,11 +166,9 @@ onMounted(loadData);
                                 </template>
                                 <template #option="s">
                                     <div class="flex flex-col text-sm py-1 text-left">
-                                        <span class="font-bold text-blue-600 mb-1">{{ s.option.warehouse?.name }}</span>
-                                        <span class="text-slate-600">
-                                            Ряд: <span class="font-medium text-slate-900">{{ s.option.rowCode }}</span> | 
-                                            Стел: <span class="font-medium text-slate-900">{{ s.option.rackCode }}</span> | 
-                                            Пол: <span class="font-medium text-slate-900">{{ s.option.shelfCode }}</span>
+                                        <span class="font-bold text-blue-600 mb-1 text-xs md:text-sm">{{ s.option.warehouse?.name }}</span>
+                                        <span class="text-slate-600 text-xs md:text-sm">
+                                            {{ s.option.rowCode }}-{{ s.option.rackCode }}-{{ s.option.shelfCode }}
                                         </span>
                                     </div>
                                 </template>
@@ -182,7 +178,7 @@ onMounted(loadData);
                             <label class="font-bold text-slate-700 text-sm">Кількість</label>
                             <InputNumber v-model="currentItem.quantity" :min="1" showButtons class="w-full" />
                         </div>
-                        <Button label="Додати до списку" icon="pi pi-plus" severity="secondary" @click="addToCart" class="mt-2" />
+                        <Button label="Додати до списку" icon="pi pi-plus" severity="secondary" @click="addToCart" class="mt-2 w-full" />
                     </div>
                 </template>
             </Card>
@@ -190,28 +186,30 @@ onMounted(loadData);
             <div class="lg:col-span-2">
                 <Card class="border border-slate-200 shadow-sm text-left">
                     <template #content>
-                        <DataTable :value="cart" class="p-datatable-sm" responsiveLayout="scroll">
-                            <template #empty><div class="p-4 text-center text-slate-400">Список порожній</div></template>
-                            <Column header="Товар">
-                                <template #body="slotProps">
-                                    {{ slotProps.data.product?.name }}
-                                </template>
-                            </Column>
-                            <Column field="quantity" header="К-сть" />
-                            <Column header="Сума">
-                                <template #body="slotProps">
-                                    {{ (slotProps.data.price * slotProps.data.quantity).toFixed(2) }} грн
-                                </template>
-                            </Column>
-                            <Column style="width: 3rem">
-                                <template #body="slotProps">
-                                    <Button icon="pi pi-times" severity="danger" text rounded @click="removeFromCart(slotProps.index)" />
-                                </template>
-                            </Column>
-                        </DataTable>
-                        <div v-if="cart.length > 0" class="mt-6 pt-6 border-t border-slate-100 flex justify-between items-center">
-                            <span class="text-xl font-bold text-slate-800">{{ totalAmount.toFixed(2) }} грн</span>
-                            <Button label="Провести накладну" icon="pi pi-check" severity="success" :loading="loading" @click="submitTransaction" class="px-6" />
+                        <div class="overflow-x-auto">
+                            <DataTable :value="cart" class="p-datatable-sm" tableStyle="min-width: 30rem">
+                                <template #empty><div class="p-4 text-center text-slate-400">Список порожній</div></template>
+                                <Column header="Товар">
+                                    <template #body="slotProps">
+                                        <span class="text-sm">{{ slotProps.data.product?.name }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="quantity" header="К-сть" class="w-16" />
+                                <Column header="Сума">
+                                    <template #body="slotProps">
+                                        <span class="text-sm">{{ (slotProps.data.price * slotProps.data.quantity).toFixed(0) }} ₴</span>
+                                    </template>
+                                </Column>
+                                <Column style="width: 3rem">
+                                    <template #body="slotProps">
+                                        <Button icon="pi pi-times" severity="danger" text rounded @click="removeFromCart(slotProps.index)" />
+                                    </template>
+                                </Column>
+                            </DataTable>
+                        </div>
+                        <div v-if="cart.length > 0" class="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <span class="text-xl font-bold text-slate-800">{{ totalAmount.toFixed(0) }} ₴</span>
+                            <Button label="Провести накладну" icon="pi pi-check" severity="success" :loading="loading" @click="submitTransaction" class="w-full sm:w-auto px-6" />
                         </div>
                     </template>
                 </Card>
@@ -219,3 +217,12 @@ onMounted(loadData);
         </div>
     </div>
 </template>
+
+<style scoped>
+:deep(.p-datatable-thead > tr > th) {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+</style>

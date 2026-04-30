@@ -129,16 +129,16 @@ onMounted(loadLogs);
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="p-3 md:p-6">
     <Toast />
-    <div class="card bg-white p-6 rounded-lg shadow border border-slate-200">
+    <div class="card bg-white p-4 md:p-6 rounded-lg shadow border border-slate-200">
       <div class="mb-6 text-left">
-        <h2 class="text-2xl font-bold text-slate-800">Журнал дій</h2>
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800">Журнал дій</h2>
         <p class="text-slate-500 text-sm">Історія операцій користувачів у системі</p>
       </div>
 
-      <div class="flex flex-wrap gap-3 mb-4 items-center">
-        <IconField iconPosition="left" style="width: 220px;">
+      <div class="flex flex-col md:flex-row flex-wrap gap-3 mb-6 items-center">
+        <IconField iconPosition="left" class="w-full md:w-64">
           <InputIcon class="pi pi-search" />
           <InputText v-model="filters.global.value" placeholder="Пошук..." class="w-full" />
         </IconField>
@@ -150,7 +150,7 @@ onMounted(loadLogs);
           placeholder="Період дат" 
           showIcon 
           iconDisplay="input"
-          class="w-64"
+          class="w-full md:w-64"
         />
 
         <Select 
@@ -158,7 +158,7 @@ onMounted(loadLogs);
           :options="uniqueUsers" 
           placeholder="Користувач" 
           showClear 
-          class="w-44" 
+          class="w-full md:w-44" 
         />
         
         <MultiSelect 
@@ -168,43 +168,48 @@ onMounted(loadLogs);
           optionValue="value" 
           placeholder="Типи дій" 
           :maxSelectedLabels="1" 
-          class="w-56" 
+          class="w-full md:w-56" 
         />
       </div>
 
-      <DataTable 
-        :value="filteredLogs" 
-        :loading="loading" 
-        paginator 
-        :rows="15" 
-        class="p-datatable-sm" 
-        sortField="timestamp" 
-        :sortOrder="-1"
-      >
-        <Column field="timestamp" header="Час" sortable>
-          <template #body="s">{{ formatDate(s.data.timestamp) }}</template>
-        </Column>
-        <Column field="username" header="Користувач" sortable>
-          <template #body="s">
-            <span class="font-bold text-slate-700">{{ s.data.username }}</span>
-          </template>
-        </Column>
-        <Column field="action" header="Дія">
-          <template #body="s">
-            <div class="flex justify-between items-center text-left">
-              <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" />
-              <Button 
-                v-if="s.data.action.toLowerCase().includes('транзакція') || s.data.action.includes('ID:') || s.data.action.toLowerCase().includes('переміщення')" 
-                icon="pi pi-print" 
-                text 
-                rounded 
-                class="p-button-sm ml-2"
-                @click="printInvoiceFromLog(s.data.action)" 
-              />
-            </div>
-          </template>
-        </Column>
-      </DataTable>
+      <div class="overflow-x-auto">
+        <DataTable 
+          :value="filteredLogs" 
+          :loading="loading" 
+          paginator 
+          :rows="15" 
+          class="p-datatable-sm" 
+          sortField="timestamp" 
+          :sortOrder="-1"
+          tableStyle="min-width: 50rem"
+        >
+          <Column field="timestamp" header="Час" sortable>
+            <template #body="s">
+              <span class="text-xs md:text-sm">{{ formatDate(s.data.timestamp) }}</span>
+            </template>
+          </Column>
+          <Column field="username" header="Користувач" sortable>
+            <template #body="s">
+              <span class="font-bold text-slate-700 text-xs md:text-sm">{{ s.data.username }}</span>
+            </template>
+          </Column>
+          <Column field="action" header="Дія">
+            <template #body="s">
+              <div class="flex justify-between items-center text-left gap-2">
+                <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" class="text-[10px] md:text-xs" />
+                <Button 
+                  v-if="s.data.action.toLowerCase().includes('транзакція') || s.data.action.includes('ID:') || s.data.action.toLowerCase().includes('переміщення')" 
+                  icon="pi pi-print" 
+                  text 
+                  rounded 
+                  class="p-button-sm flex-shrink-0"
+                  @click="printInvoiceFromLog(s.data.action)" 
+                />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
     </div>
   </div>
 </template>
@@ -213,12 +218,16 @@ onMounted(loadLogs);
 :deep(.p-datatable-thead > tr > th) {
   background-color: #f8fafc;
   color: #64748b;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
 }
 
 :deep(.p-inputtext), :deep(.p-select), :deep(.p-multiselect), :deep(.p-datepicker-input) {
     background-color: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
+}
+
+.overflow-x-auto {
+  width: 100%;
 }
 </style>

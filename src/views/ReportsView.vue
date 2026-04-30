@@ -80,16 +80,16 @@ onMounted(loadReports);
 </script>
 
 <template>
-    <div class="p-6 text-left">
+    <div class="p-4 md:p-6 text-left">
         <Toast />
-        <div class="mb-6 flex justify-between items-center">
+        <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-slate-800">Аналітика та звіти</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Аналітика та звіти</h1>
                 <p class="text-slate-500 text-sm">Звіт про стан складу на {{ new Date().toLocaleDateString('uk-UA') }}</p>
             </div>
-            <div class="flex gap-3">
-                <Button label="Експорт PDF" icon="pi pi-file-pdf" severity="danger" size="small" :loading="downloadLoading" @click="handleDownload('pdf')" />
-                <Button label="Експорт CSV" icon="pi pi-file-excel" severity="success" size="small" :loading="downloadLoading" @click="handleDownload('csv')" />
+            <div class="flex gap-2 w-full md:w-auto">
+                <Button label="PDF" icon="pi pi-file-pdf" severity="danger" size="small" class="flex-1 md:flex-none" :loading="downloadLoading" @click="handleDownload('pdf')" />
+                <Button label="CSV" icon="pi pi-file-excel" severity="success" size="small" class="flex-1 md:flex-none" :loading="downloadLoading" @click="handleDownload('csv')" />
             </div>
         </div>
 
@@ -98,55 +98,57 @@ onMounted(loadReports);
         </div>
 
         <div v-else>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
+                <div class="p-5 md:p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center">
-                            <i class="pi pi-money-bill text-xl"></i>
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-money-bill text-lg md:text-xl"></i>
                         </div>
                         <div>
-                            <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Загальна вартість</span>
-                            <div class="text-3xl font-black text-slate-800">{{ stats.totalValue.toLocaleString('uk-UA') }} грн</div>
+                            <span class="text-slate-500 text-xs md:text-sm font-medium uppercase tracking-wider">Загальна вартість</span>
+                            <div class="text-xl md:text-3xl font-black text-slate-800">{{ stats.totalValue.toLocaleString('uk-UA') }} грн</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
+                <div class="p-5 md:p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
-                            <i class="pi pi-exclamation-triangle text-xl"></i>
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-exclamation-triangle text-lg md:text-xl"></i>
                         </div>
                         <div>
-                            <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Критичний залишок</span>
-                            <div class="text-3xl font-black text-slate-800">{{ stats.criticalCount }} поз.</div>
+                            <span class="text-slate-500 text-xs md:text-sm font-medium uppercase tracking-wider">Критичний залишок</span>
+                            <div class="text-xl md:text-3xl font-black text-slate-800">{{ stats.criticalCount }} поз.</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div class="card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-slate-800">Відомість дефіциту</h3>
-                    <Tag value="Потребують закупівлі" severity="warn" />
+                    <h3 class="text-lg md:text-xl font-bold text-slate-800">Відомість дефіциту</h3>
+                    <Tag value="Потребують закупівлі" severity="warn" class="hidden sm:inline-flex" />
                 </div>
 
-                <DataTable :value="criticalItems" class="p-datatable-sm" :rows="5" paginator>
-                    <Column field="name" header="Назва товару"></Column>
-                    <Column field="sku" header="Артикул"></Column>
-                    <Column field="quantity" header="Залишок">
-                        <template #body="slotProps">
-                            <span class="text-red-600 font-bold">{{ slotProps.data.quantity }}</span>
+                <div class="overflow-x-auto">
+                    <DataTable :value="criticalItems" class="p-datatable-sm" :rows="5" paginator responsiveLayout="stack" breakpoint="640px">
+                        <Column field="name" header="Назва товару"></Column>
+                        <Column field="sku" header="Артикул" class="font-mono text-xs"></Column>
+                        <Column field="quantity" header="Залишок">
+                            <template #body="slotProps">
+                                <span class="text-red-600 font-bold">{{ slotProps.data.quantity }}</span>
+                            </template>
+                        </Column>
+                        <Column header="Дія">
+                            <template #body="slotProps">
+                                <Button label="Замовити" icon="pi pi-shopping-cart" size="small" text @click="orderProduct(slotProps.data)" />
+                            </template>
+                        </Column>
+                        <template #empty>
+                            <div class="py-4 text-slate-400 text-center text-sm">Дефіцитних товарів не виявлено.</div>
                         </template>
-                    </Column>
-                    <Column header="Дія">
-                        <template #body="slotProps">
-                            <Button label="Замовити" icon="pi pi-shopping-cart" size="small" text @click="orderProduct(slotProps.data)" />
-                        </template>
-                    </Column>
-                    <template #empty>
-                        <div class="py-4 text-slate-400 text-center">Дефіцитних товарів не виявлено.</div>
-                    </template>
-                </DataTable>
+                    </DataTable>
+                </div>
             </div>
         </div>
     </div>

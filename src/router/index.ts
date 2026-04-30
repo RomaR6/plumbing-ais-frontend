@@ -22,8 +22,12 @@ const router = createRouter({
       component: AppLayout,
       meta: { requiresAuth: true },
       children: [
+        {
+          path: '',
+          redirect: { name: 'products' } 
+        },
         { 
-          path: '', 
+          path: 'products', 
           name: 'products', 
           component: () => import('../views/ProductsView.vue') 
         },
@@ -31,13 +35,13 @@ const router = createRouter({
           path: 'stocks', 
           name: 'stocks', 
           component: () => import('../views/StocksView.vue'),
-          meta: { roles: ['Admin', 'Manager'] } 
+          meta: { roles: ['Admin', 'Manager', 'User'] } 
         },
         { 
           path: 'transactions', 
           name: 'transactions', 
           component: () => import('../views/TransactionsView.vue'),
-          meta: { roles: ['Admin', 'Manager'] } 
+          meta: { roles: ['Admin', 'Manager', 'User'] } 
         },
         { 
           path: 'users', 
@@ -49,7 +53,7 @@ const router = createRouter({
           path: 'reports', 
           name: 'reports', 
           component: () => import('../views/ReportsView.vue'),
-          meta: { roles: ['Admin'] } 
+          meta: { roles: ['Admin', 'Manager'] } 
         },
         { 
           path: 'logs', 
@@ -72,26 +76,26 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, _, next) => {
-  const authStore = useAuthStore();
+  const authStore = useAuthStore()
   
   if (!authStore.token && localStorage.getItem('token')) {
-    await authStore.init();
+    await authStore.init()
   }
   
-  const isAuthenticated = !!authStore.token;
-  const userRole = authStore.role || '';
+  const isAuthenticated = !!authStore.token
+  const userRole = authStore.role || ''
 
   if (to.name !== 'login' && !isAuthenticated) {
-    next({ name: 'login' });
+    next({ name: 'login' })
   } 
   else if (to.name === 'login' && isAuthenticated) {
-    next({ name: 'products' });
+    next({ name: 'products' })
   }
   else if (to.meta.roles && !to.meta.roles.includes(userRole)) {
-    next({ name: 'products' });
+    next({ name: 'products' })
   } 
   else {
-    next();
+    next()
   }
 })
 
