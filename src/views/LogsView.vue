@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '../api/axiosInstance';
 import { invoiceService } from '../api/invoiceService';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
+import Select from 'primevue/select';
+import MultiSelect from 'primevue/multiselect';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputText from 'primevue/inputtext';
+import DatePicker from 'primevue/datepicker';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
+import { FilterMatchMode } from '@primevue/core/api';
 
 interface Log {
   id: number;
@@ -16,9 +23,72 @@ interface Log {
   username: string;
 }
 
+interface LogFilters {
+  global: { value: string | null; matchMode: any };
+  username: { value: string | null; matchMode: any };
+  actionType: { value: string[] | null; matchMode: any };
+  dateRange: { value: Date[] | null; matchMode: any };
+}
+
 const logs = ref<Log[]>([]);
 const loading = ref(true);
 const toast = useToast();
+
+const filters = ref<LogFilters>({
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  username: { value: null, matchMode: FilterMatchMode.EQUALS },
+  actionType: { value: [], matchMode: FilterMatchMode.IN },
+  dateRange: { value: null, matchMode: FilterMatchMode.BETWEEN }
+});
+
+const actionOptions = ref([
+  { name: 'Видалення', value: 'видалення' },
+  { name: 'Оновлення/Зміна', value: 'оновлено' },
+  { name: 'Створення', value: 'створення' },
+  { name: 'Вхід', value: 'вхід' },
+  { name: 'Транзакція', value: 'транзакція' },
+  { name: 'Переміщення', value: 'переміщення' }
+]);
+
+const uniqueUsers = computed(() => {
+  return [...new Set(logs.value.map(l => l.username))].sort();
+});
+
+const filteredLogs = computed(() => {
+  let result = logs.value;
+
+  const selectedTypes = filters.value.actionType.value;
+  if (Array.isArray(selectedTypes) && selectedTypes.length > 0) {
+    result = result.filter(log => {
+      const actionText = log.action.toLowerCase();
+      return selectedTypes.some(type => actionText.includes(type.toLowerCase()));
+    });
+  }
+
+  if (filters.value.username.value) {
+    result = result.filter(log => log.username === filters.value.username.value);
+  }
+
+  if (filters.value.dateRange.value && filters.value.dateRange.value[0] && filters.value.dateRange.value[1]) {
+    const start = new Date(filters.value.dateRange.value[0]).getTime();
+    const end = new Date(filters.value.dateRange.value[1]).getTime() + 86399999;
+    
+    result = result.filter(log => {
+      const logTime = new Date(log.timestamp).getTime();
+      return logTime >= start && logTime <= end;
+    });
+  }
+
+  if (filters.value.global.value) {
+    const searchTerm = filters.value.global.value.toLowerCase();
+    result = result.filter(log => 
+      log.username.toLowerCase().includes(searchTerm) || 
+      log.action.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  return result;
+});
 
 const loadLogs = async () => {
   loading.value = true;
@@ -34,28 +104,23 @@ const loadLogs = async () => {
 
 const printInvoiceFromLog = async (actionText: string) => {
   const match = actionText.match(/ID:?\s*(\d+)/i);
-  
   if (match && match[1]) {
     try {
       await invoiceService.downloadInvoice(parseInt(match[1]));
       toast.add({ severity: 'success', summary: 'Успішно', detail: 'Завантаження розпочато' });
     } catch (e) {
-      toast.add({ severity: 'error', summary: 'Помилка', detail: 'Файл не знайдено на сервері' });
+      toast.add({ severity: 'error', summary: 'Помилка', detail: 'Файл не знайдено' });
     }
-  } else {
-    toast.add({ severity: 'warn', summary: 'Увага', detail: 'ID транзакції не знайдено в описі' });
   }
 };
 
-const formatDate = (d: string) => {
-  return new Date(d).toLocaleString('uk-UA');
-};
+const formatDate = (d: string) => new Date(d).toLocaleString('uk-UA');
 
 const getActionSeverity = (action: string) => {
   const a = action.toLowerCase();
-  if (a.includes('видалення') || a.includes('delete')) return 'danger';
-  if (a.includes('оновлення') || a.includes('update') || a.includes('зміна')) return 'warn';
-  if (a.includes('створення') || a.includes('create') || a.includes('реєстрація')) return 'success';
+  if (a.includes('видалення')) return 'danger';
+  if (a.includes('оновлено') || a.includes('зміна')) return 'warn';
+  if (a.includes('створення') || a.includes('реєстрація')) return 'success';
   if (a.includes('вхід')) return 'secondary';
   return 'info';
 };
@@ -72,7 +137,50 @@ onMounted(loadLogs);
         <p class="text-slate-500 text-sm">Історія операцій користувачів у системі</p>
       </div>
 
-      <DataTable :value="logs" :loading="loading" paginator :rows="15" class="p-datatable-sm" sortField="timestamp" :sortOrder="-1">
+      <div class="flex flex-wrap gap-3 mb-4 items-center">
+        <IconField iconPosition="left" style="width: 220px;">
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="filters.global.value" placeholder="Пошук..." class="w-full" />
+        </IconField>
+        
+        <DatePicker 
+          v-model="filters.dateRange.value" 
+          selectionMode="range" 
+          :manualInput="false" 
+          placeholder="Період дат" 
+          showIcon 
+          iconDisplay="input"
+          class="w-64"
+        />
+
+        <Select 
+          v-model="filters.username.value" 
+          :options="uniqueUsers" 
+          placeholder="Користувач" 
+          showClear 
+          class="w-44" 
+        />
+        
+        <MultiSelect 
+          v-model="filters.actionType.value" 
+          :options="actionOptions" 
+          optionLabel="name" 
+          optionValue="value" 
+          placeholder="Типи дій" 
+          :maxSelectedLabels="1" 
+          class="w-56" 
+        />
+      </div>
+
+      <DataTable 
+        :value="filteredLogs" 
+        :loading="loading" 
+        paginator 
+        :rows="15" 
+        class="p-datatable-sm" 
+        sortField="timestamp" 
+        :sortOrder="-1"
+      >
         <Column field="timestamp" header="Час" sortable>
           <template #body="s">{{ formatDate(s.data.timestamp) }}</template>
         </Column>
@@ -85,11 +193,14 @@ onMounted(loadLogs);
           <template #body="s">
             <div class="flex justify-between items-center text-left">
               <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" />
-              <Button v-if="s.data.action.toLowerCase().includes('транзакція') || s.data.action.includes('ID:')" 
-                      icon="pi pi-print" 
-                      text rounded 
-                      class="p-button-sm ml-2"
-                      @click="printInvoiceFromLog(s.data.action)" />
+              <Button 
+                v-if="s.data.action.toLowerCase().includes('транзакція') || s.data.action.includes('ID:') || s.data.action.toLowerCase().includes('переміщення')" 
+                icon="pi pi-print" 
+                text 
+                rounded 
+                class="p-button-sm ml-2"
+                @click="printInvoiceFromLog(s.data.action)" 
+              />
             </div>
           </template>
         </Column>
@@ -104,5 +215,10 @@ onMounted(loadLogs);
   color: #64748b;
   font-size: 0.8rem;
   text-transform: uppercase;
+}
+
+:deep(.p-inputtext), :deep(.p-select), :deep(.p-multiselect), :deep(.p-datepicker-input) {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
 }
 </style>

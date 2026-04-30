@@ -8,6 +8,7 @@ import { categoryService } from '../api/categoryService';
 import { brandService } from '../api/brandService';
 import { unitService } from '../api/unitService';
 import type { Product, Category, Brand, Unit } from '../types';
+import { FilterMatchMode } from '@primevue/core/api';
 
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
@@ -17,6 +18,8 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Toast from 'primevue/toast';
 
@@ -30,6 +33,12 @@ const productDialog = ref(false);
 const confirm = useConfirm();
 const toast = useToast();
 const product = ref<Partial<Product>>({});
+
+const filters = ref({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    categoryName: { value: null, matchMode: FilterMatchMode.EQUALS },
+    brandName: { value: null, matchMode: FilterMatchMode.EQUALS }
+});
 
 const canEdit = computed(() => authStore.role === 'Admin' || authStore.role === 'Manager');
 const canDelete = computed(() => authStore.role === 'Admin');
@@ -69,7 +78,7 @@ const editProduct = (data: Product) => {
 
 const saveProduct = async () => {
     if (!product.value.name || !product.value.sku || !product.value.categoryId) {
-        toast.add({ severity: 'warn', summary: 'Увага', detail: 'Заповніть назву, SKU та категорію' });
+        toast.add({ severity: 'warn', summary: 'Увага', detail: 'Заповніть назву, Артикул та категорію' });
         return;
     }
     try {
@@ -112,16 +121,56 @@ const confirmDelete = (id: number) => {
     <div class="p-6">
         <Toast />
         <ConfirmDialog />
+        
         <div class="bg-white p-6 rounded-lg shadow border border-slate-200">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800 text-left">Каталог товарів</h2>
-                    <p class="text-slate-500 text-sm text-left">Управління номенклатурою та технічними характеристиками</p>
+            <div class="flex flex-col gap-6 mb-6">
+                <div class="flex justify-between items-center text-left">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Каталог товарів</h2>
+                        <p class="text-slate-500 text-sm">Управління номенклатурою та технічними характеристиками</p>
+                    </div>
+                    <Button v-if="canAdd" label="Додати товар" icon="pi pi-plus" severity="success" @click="openNew" />
                 </div>
-                <Button v-if="canAdd" label="Додати товар" icon="pi pi-plus" severity="success" @click="openNew" />
+
+                <div class="flex items-center gap-3 mb-4">
+                    <IconField iconPosition="left" style="width: 300px; min-width: 300px;">
+                        <InputIcon class="pi pi-search" />
+                        <InputText v-model="filters['global'].value" placeholder="Пошук..." class="w-full" />
+                    </IconField>
+                    
+                    <Select 
+                        v-model="filters['categoryName'].value" 
+                        :options="categories" 
+                        optionLabel="name" 
+                        optionValue="name" 
+                        placeholder="Всі категорії" 
+                        showClear 
+                        style="width: 250px; min-width: 250px;"
+                    />
+                    
+                    <Select 
+                        v-model="filters['brandName'].value" 
+                        :options="brands" 
+                        optionLabel="name" 
+                        optionValue="name" 
+                        placeholder="Всі бренди" 
+                        showClear 
+                        style="width: 200px; min-width: 200px;"
+                    />
+                </div>
             </div>
-            <DataTable :value="products" :loading="loading" paginator :rows="10" class="p-datatable-sm" tableStyle="min-width: 90rem">
-                <Column field="sku" header="SKU" sortable class="font-mono text-xs"></Column>
+
+            <DataTable 
+                :value="products" 
+                :loading="loading" 
+                v-model:filters="filters"
+                :globalFilterFields="['sku', 'name']"
+                paginator 
+                :rows="10" 
+                class="p-datatable-sm" 
+                tableStyle="min-width: 90rem"
+            >
+                <Column field="sku" header="Артикул" sortable class="font-mono text-xs"></Column>
                 <Column field="name" header="Назва" sortable></Column>
                 <Column field="categoryName" header="Категорія" sortable>
                     <template #body="s">
@@ -149,16 +198,17 @@ const confirmDelete = (id: number) => {
                 </Column>
             </DataTable>
         </div>
+
         <Dialog v-model:visible="productDialog" :header="product.id ? 'Редагувати товар' : 'Новий товар'" modal style="width: 650px" class="p-fluid">
-            <div class="flex flex-col gap-4 py-2">
+            <div class="flex flex-col gap-4 py-2 text-left">
                 <div class="field">
                     <label class="font-bold text-slate-700 mb-1 block">Назва товару *</label>
-                    <InputText v-model="product.name" />
+                    <InputText v-model="product.name" placeholder="напр. Змішувач Grohe для ванної" />
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="field">
-                        <label class="font-bold text-slate-700 mb-1 block">SKU *</label>
-                        <InputText v-model="product.sku" />
+                        <label class="font-bold text-slate-700 mb-1 block">Артикул *</label>
+                        <InputText v-model="product.sku" placeholder="напр. GR-100-WM" />
                     </div>
                     <div class="field">
                         <label class="font-bold text-slate-700 mb-1 block">Ціна *</label>
@@ -168,30 +218,30 @@ const confirmDelete = (id: number) => {
                 <div class="grid grid-cols-3 gap-4">
                     <div class="field">
                         <label class="font-bold text-slate-700 mb-1 block">Категорія *</label>
-                        <Select v-model="product.categoryId" :options="categories" optionLabel="name" optionValue="id" />
+                        <Select v-model="product.categoryId" :options="categories" optionLabel="name" optionValue="id" filter placeholder="Оберіть..." />
                     </div>
                     <div class="field">
                         <label class="font-bold text-slate-700 mb-1 block">Бренд</label>
-                        <Select v-model="product.brandId" :options="brands" optionLabel="name" optionValue="id" />
+                        <Select v-model="product.brandId" :options="brands" optionLabel="name" optionValue="id" filter placeholder="Оберіть..." />
                     </div>
                     <div class="field">
                         <label class="font-bold text-slate-700 mb-1 block">Од. виміру</label>
-                        <Select v-model="product.unitId" :options="units" optionLabel="name" optionValue="id" />
+                        <Select v-model="product.unitId" :options="units" optionLabel="name" optionValue="id" placeholder="Оберіть..." />
                     </div>
                 </div>
                 <div class="divider border-t border-slate-100 my-2"></div>
                 <div class="grid grid-cols-3 gap-4">
                     <div class="field">
                         <label class="font-bold text-slate-600 mb-1 block">Матеріал</label>
-                        <InputText v-model="product.material" />
+                        <InputText v-model="product.material" placeholder="напр. Латунь" />
                     </div>
                     <div class="field">
                         <label class="font-bold text-slate-600 mb-1 block">Діаметр</label>
-                        <InputText v-model="product.diameter" />
+                        <InputText v-model="product.diameter" placeholder="напр. 1/2" />
                     </div>
                     <div class="field">
                         <label class="font-bold text-slate-600 mb-1 block">Різьба</label>
-                        <InputText v-model="product.threadType" />
+                        <InputText v-model="product.threadType" placeholder="напр. Зовнішня" />
                     </div>
                 </div>
                 <div class="field">
@@ -214,7 +264,9 @@ const confirmDelete = (id: number) => {
     border: 1px solid #cbd5e1 !important;
 }
 :deep(.p-select-label) { color: #1e293b !important; }
-:deep(.p-datatable) { background-color: white !important; }
 :deep(.p-datatable-thead > tr > th) { background-color: #f8fafc !important; }
-:deep(.p-select-panel) { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+
+.p-iconfield {
+    display: inline-flex !important;
+}
 </style>

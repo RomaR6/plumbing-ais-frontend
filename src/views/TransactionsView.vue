@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { stockService } from '../api/stockService';
 import { productService } from '../api/productService';
 import { invoiceService } from '../api/invoiceService';
@@ -9,13 +10,13 @@ import type { Location, Product, TransactionItem } from '../types';
 import Select from 'primevue/select';
 import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
-import Message from 'primevue/message';
 import Toast from 'primevue/toast';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
 
+const route = useRoute();
 const toast = useToast();
 const loading = ref(false);
 const showSuccessDialog = ref(false);
@@ -45,13 +46,28 @@ const loadData = async () => {
         ]);
         products.value = pRes.data;
         locations.value = lRes.data;
+
+        if (route.query.productId) {
+            const pId = parseInt(route.query.productId as string);
+            const qty = parseInt(route.query.amount as string) || 1;
+            const type = (route.query.type as string) || 'In';
+            
+            transactionType.value = type;
+            currentItem.value.productId = pId;
+            currentItem.value.quantity = qty;
+            
+            // ВИДАЛЕНО: toast.add({...}) - повідомлення про Smart Order більше не з'являтиметься
+        }
     } catch (e) {
         toast.add({ severity: 'error', summary: 'Помилка', detail: 'Дані не завантажено' });
     }
 };
 
 const addToCart = () => {
-    if (!currentItem.value.productId || !currentItem.value.locationId) return;
+    if (!currentItem.value.productId || !currentItem.value.locationId) {
+        toast.add({ severity: 'warn', summary: 'Увага', detail: 'Оберіть товар та локацію' });
+        return;
+    }
     const product = products.value.find(p => p.id === currentItem.value.productId);
     const location = locations.value.find(l => l.id === currentItem.value.locationId);
 

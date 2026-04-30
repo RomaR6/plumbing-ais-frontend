@@ -65,9 +65,14 @@ const handleDownload = async (format: 'csv' | 'pdf') => {
 };
 
 const orderProduct = (product: any) => {
+    const amountNeeded = Math.max(0, (product.minThreshold || 0) - product.quantity);
     router.push({ 
         path: '/transactions', 
-        query: { productId: product.id, type: 'In' } 
+        query: { 
+            productId: product.id, 
+            type: 'In',
+            amount: amountNeeded > 0 ? amountNeeded : 1
+        } 
     });
 };
 

@@ -9,6 +9,8 @@ import Toast from 'primevue/toast';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import ConfirmDialog from 'primevue/confirmdialog';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -33,6 +35,7 @@ const roles = ref(['Admin', 'Manager', 'User']);
 
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  role: { value: null, matchMode: FilterMatchMode.EQUALS }
 });
 
 const newUser = ref({
@@ -117,14 +120,28 @@ onMounted(loadUsers);
     <ConfirmDialog />
     
     <div class="card bg-white p-6 rounded-lg shadow border border-slate-200">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h2 class="text-2xl font-bold text-slate-800 text-left">Управління персоналом</h2>
-          <p class="text-slate-500 text-sm text-left">Список працівників та налаштування прав доступу</p>
-        </div>
-        <div class="flex gap-2 w-full md:w-auto">
-          <InputText v-model="filters['global'].value" placeholder="Пошук..." class="w-full" />
+      <div class="flex flex-col gap-6 mb-6 text-left">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Управління персоналом</h2>
+            <p class="text-slate-500 text-sm">Список працівників та налаштування прав доступу</p>
+          </div>
           <Button label="Додати" icon="pi pi-user-plus" severity="success" @click="userDialog = true" />
+        </div>
+
+        <div class="flex flex-wrap gap-3 items-center">
+          <IconField iconPosition="left" style="width: 300px; min-width: 300px;">
+            <InputIcon class="pi pi-search" />
+            <InputText v-model="filters['global'].value" placeholder="Пошук працівника..." class="w-full" />
+          </IconField>
+          
+          <Select 
+            v-model="filters['role'].value" 
+            :options="roles" 
+            placeholder="Фільтр за роллю" 
+            showClear 
+            style="width: 200px; min-width: 200px;"
+          />
         </div>
       </div>
 
@@ -138,7 +155,7 @@ onMounted(loadUsers);
       >
         <Column header="ПІБ" sortable>
           <template #body="s">
-            <div class="flex flex-col">
+            <div class="flex flex-col text-left">
               <span class="font-bold text-slate-700">{{ s.data.firstName }} {{ s.data.lastName }}</span>
               <span class="text-xs text-slate-500">@{{ s.data.username }}</span>
             </div>
@@ -166,7 +183,7 @@ onMounted(loadUsers);
     </div>
 
     <Dialog v-model:visible="userDialog" header="Реєстрація нового співробітника" modal style="width: 450px" class="p-fluid">
-      <div class="flex flex-col gap-4 py-2">
+      <div class="flex flex-col gap-4 py-2 text-left">
         <div class="field">
           <label class="font-bold text-sm text-slate-600">Логін</label>
           <InputText v-model="newUser.username" />
@@ -199,10 +216,20 @@ onMounted(loadUsers);
 </template>
 
 <style scoped>
+:deep(.p-inputtext), :deep(.p-select), :deep(.p-inputnumber-input) {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+}
+:deep(.p-select-label) { color: #1e293b !important; }
 :deep(.p-datatable-thead > tr > th) {
   background-color: #f8fafc;
   color: #64748b;
   font-size: 0.8rem;
   text-transform: uppercase;
+}
+
+.p-iconfield {
+    display: inline-flex !important;
 }
 </style>
