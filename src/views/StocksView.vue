@@ -154,7 +154,16 @@ const executeMove = async () => {
     try {
         const fromStock = stocks.value.find(s => s.locationId === moveData.value.fromLocationId && s.productId === moveData.value.productId);
         const toLoc = locations.value.find(l => l.id === moveData.value.toLocationId);
-        const description = `Переміщення: ${fromStock?.location?.warehouse?.name} (${fromStock?.location?.rowCode}-${fromStock?.location?.rackCode}-${fromStock?.location?.shelfCode}) → ${toLoc?.warehouse?.name} (${toLoc?.rowCode}-${toLoc?.rackCode}-${toLoc?.shelfCode})`;
+        
+        const fromDesc = fromStock?.location 
+            ? `${fromStock.location.warehouse?.name || 'Склад'} (${fromStock.location.rowCode}-${fromStock.location.rackCode}-${fromStock.location.shelfCode})`
+            : 'Невідомо';
+        const toDesc = toLoc 
+            ? `${toLoc.warehouse?.name || 'Склад'} (${toLoc.rowCode}-${toLoc.rackCode}-${toLoc.shelfCode})`
+            : 'Невідомо';
+
+        const description = `Переміщення: ${fromDesc} → ${toDesc}`;
+        
         const response = await stockService.moveStock(
             moveData.value.productId, 
             moveData.value.fromLocationId, 
@@ -162,9 +171,11 @@ const executeMove = async () => {
             moveData.value.quantity,
             description
         );
+        
         toast.add({ severity: 'success', summary: 'Успішно', detail: 'Товар переміщено' });
         moveDialog.value = false;
         await loadData();
+        
         if (response.data && response.data.transactionId) {
             lastTransactionId.value = response.data.transactionId;
             showSuccessDialog.value = true;
@@ -230,7 +241,7 @@ const getStockSeverity = (quantity: number, threshold: number) => {
                         <div class="flex flex-col lg:flex-row flex-wrap gap-3 mb-4">
                             <IconField iconPosition="left" class="w-full lg:w-64">
                                 <InputIcon class="pi pi-search" />
-                                <InputText v-model="filters['global'].value" placeholder="Пошук..." class="w-full" />
+                                <InputText v-model="filters['global'].value" placeholder="Пошук за назвою..." class="w-full" />
                             </IconField>
                             <div class="grid grid-cols-2 md:flex md:flex-wrap gap-3 w-full lg:w-auto">
                                 <Select v-model="filters['location.warehouse.name'].value" :options="warehouses" optionLabel="name" optionValue="name" placeholder="Склад" showClear class="w-full md:w-48" />
@@ -255,11 +266,14 @@ const getStockSeverity = (quantity: number, threshold: number) => {
                                 <Column header="Локація">
                                     <template #body="s">
                                         <div v-if="s.data.location" class="flex flex-col text-left">
-                                            <span class="font-bold text-blue-600 text-[10px] uppercase">{{ s.data.location.warehouse?.name }}</span>
+                                            <span class="font-bold text-blue-600 text-[10px] uppercase">
+                                                {{ s.data.location.warehouse?.name || 'Склад' }}
+                                            </span>
                                             <span class="text-slate-500 text-xs font-medium uppercase">
                                                 {{ s.data.location.rowCode }}-{{ s.data.location.rackCode }}-{{ s.data.location.shelfCode }}
                                             </span>
                                         </div>
+                                        <span v-else class="text-slate-400">--</span>
                                     </template>
                                 </Column>
                                 <Column field="quantity" header="Залишок" sortable>
@@ -297,6 +311,7 @@ const getStockSeverity = (quantity: number, threshold: number) => {
             </Tabs>
         </div>
 
+        
         <Dialog v-model:visible="locationDialog" header="Нова локація" modal class="p-fluid w-[95vw] md:w-[450px]">
             <div class="flex flex-col gap-4 py-2">
                 <div class="field">
@@ -326,6 +341,7 @@ const getStockSeverity = (quantity: number, threshold: number) => {
             </template>
         </Dialog>
 
+        
         <Dialog v-model:visible="moveDialog" header="Переміщення" modal class="p-fluid w-[95vw] md:w-[550px]">
             <div class="flex flex-col gap-4 py-2">
                 <div class="field">
@@ -337,7 +353,17 @@ const getStockSeverity = (quantity: number, threshold: number) => {
                         <label class="font-bold text-xs text-slate-700 mb-1 block">Звідки</label>
                         <Select v-model="moveData.fromLocationId" :options="stocks.filter(s => s.productId === moveData.productId)" optionValue="locationId" :disabled="!moveData.productId">
                             <template #option="s">
-                                <span class="text-xs">{{ s.option.location?.rowCode }}-{{ s.option.location?.rackCode }}-{{ s.option.location?.shelfCode }}</span>
+                                <span class="text-xs">
+                                    {{ s.option.location?.warehouse?.name || 'Склад' }}: 
+                                    {{ s.option.location?.rowCode }}-{{ s.option.location?.rackCode }}-{{ s.option.location?.shelfCode }}
+                                </span>
+                            </template>
+                            <template #value="s">
+                                <div v-if="s.value">
+                                    {{ stocks.find(st => st.locationId === s.value)?.location?.warehouse?.name }}: 
+                                    {{ stocks.find(st => st.locationId === s.value)?.location?.rowCode }}-{{ stocks.find(st => st.locationId === s.value)?.location?.rackCode }}
+                                </div>
+                                <span v-else>Оберіть локацію</span>
                             </template>
                         </Select>
                     </div>
@@ -345,7 +371,17 @@ const getStockSeverity = (quantity: number, threshold: number) => {
                         <label class="font-bold text-xs text-slate-700 mb-1 block">Куди</label>
                         <Select v-model="moveData.toLocationId" :options="locations" optionValue="id" filter :disabled="!moveData.productId">
                             <template #option="l">
-                                <span class="text-xs">{{ l.option.rowCode }}-{{ l.option.rackCode }}-{{ l.option.shelfCode }}</span>
+                                <span class="text-xs">
+                                    {{ l.option.warehouse?.name || 'Склад' }}: 
+                                    {{ l.option.rowCode }}-{{ l.option.rackCode }}-{{ l.option.shelfCode }}
+                                </span>
+                            </template>
+                            <template #value="l">
+                                <div v-if="l.value">
+                                    {{ locations.find(loc => loc.id === l.value)?.warehouse?.name }}: 
+                                    {{ locations.find(loc => loc.id === l.value)?.rowCode }}-{{ locations.find(loc => loc.id === l.value)?.rackCode }}
+                                </div>
+                                <span v-else>Оберіть нову локацію</span>
                             </template>
                         </Select>
                     </div>
@@ -371,4 +407,4 @@ const getStockSeverity = (quantity: number, threshold: number) => {
 @media (min-width: 768px) { :deep(.p-tabpanels) { padding: 1.5rem; } }
 :deep(.p-datatable-thead > tr > th) { background-color: #f8fafc; color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.025em; }
 :deep(.p-dialog-content) { padding: 1rem !important; overflow-y: visible !important; }
-</style>```
+</style>

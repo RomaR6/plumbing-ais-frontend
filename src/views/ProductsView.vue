@@ -178,7 +178,7 @@ const confirmDelete = (id: number) => {
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto border rounded-lg">
                 <DataTable 
                     :value="products" 
                     :loading="loading" 
@@ -187,29 +187,35 @@ const confirmDelete = (id: number) => {
                     paginator 
                     :rows="10" 
                     class="p-datatable-sm" 
-                    tableStyle="min-width: 60rem"
+                    tableStyle="min-width: 100rem"
+                    stripedRows
                 >
                     <Column field="sku" header="Артикул" sortable class="font-mono text-[10px] md:text-xs"></Column>
-                    <Column field="name" header="Назва" sortable class="text-sm md:text-base"></Column>
+                    <Column field="name" header="Назва" sortable class="text-sm md:text-base font-bold text-slate-700"></Column>
                     <Column field="categoryName" header="Категорія" sortable>
                         <template #body="s">
                             <Tag :value="s.data.categoryName" severity="secondary" class="text-[10px]" />
                         </template>
                     </Column>
-                    <Column field="brandName" header="Бренд" sortable class="hidden md:table-cell"></Column>
+                    <Column field="brandName" header="Бренд" sortable></Column>
+                    <Column field="material" header="Матеріал" sortable></Column>
+                    <Column field="diameter" header="Діаметр" sortable></Column>
+                    <Column field="threadType" header="Різьба" sortable></Column>
+                    <Column field="unitName" header="Од. вим."></Column>
                     <Column field="price" header="Ціна" sortable>
                         <template #body="s">
                             <span class="font-bold text-emerald-700 text-sm md:text-base">{{ s.data.price }} грн</span>
                         </template>
                     </Column>
-                    <Column header="Дії" class="w-24 md:w-32">
+
+                    <Column header="Дії" class="w-24 md:w-32 text-right" frozen alignFrozen="right">
                         <template #body="s">
-                            <div class="flex gap-1 md:gap-2 justify-center">
+                            <div class="flex gap-1 md:gap-2 justify-end">
                                 <template v-if="canEdit">
                                     <Button icon="pi pi-pencil" text rounded severity="info" size="small" @click="editProduct(s.data)" />
                                     <Button v-if="canDelete" icon="pi pi-trash" text rounded severity="danger" size="small" @click="confirmDelete(s.data.id)" />
                                 </template>
-                                <span v-else class="text-slate-400 text-[10px] italic">Тільки перегляд</span>
+                                <span v-else class="text-slate-400 text-[10px] italic">Перегляд</span>
                             </div>
                         </template>
                     </Column>
@@ -288,6 +294,21 @@ const confirmDelete = (id: number) => {
 
 .p-iconfield {
     display: inline-flex !important;
+}
+
+/* Стилізація смуги прокрутки для зручності */
+.overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 @media (max-width: 768px) {
