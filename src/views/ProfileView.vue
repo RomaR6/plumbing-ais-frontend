@@ -13,7 +13,7 @@ const formatDate = (d?: string) => {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('uk-UA', {
         day: '2-digit',
-        month: 'short',
+        month: 'long',
         year: 'numeric'
     });
 };
@@ -35,57 +35,240 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="p-4 md:p-6 flex justify-center">
-        <Card class="w-full max-w-xl shadow-lg border border-slate-200">
+    <div class="profile-container">
+        <Card class="profile-card">
             <template #content>
-                <div class="text-center md:text-left">
-                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 break-words">
-                        {{ user?.firstName }} {{ user?.lastName }}
-                    </h2>
-                    <div class="flex flex-col md:flex-row items-center gap-2 md:gap-3 mt-2">
-                        <span class="text-slate-500 font-medium text-base md:text-lg">@{{ user?.username }}</span>
-                        <Tag :value="roleName" :severity="getRoleSeverity(roleName)" class="px-3 py-0.5" />
+                <div class="profile-header">
+                    <div class="avatar-circle">
+                        {{ user?.firstName?.[0] }}{{ user?.lastName?.[0] }}
+                    </div>
+                    <div class="header-text">
+                        <h2 class="full-name">{{ user?.firstName }} {{ user?.lastName }}</h2>
+                        <div class="handle-row">
+                            <span class="username-tag">@{{ user?.username }}</span>
+                            <Tag :value="roleName" :severity="getRoleSeverity(roleName)" />
+                        </div>
                     </div>
                 </div>
 
-                <Divider class="my-6 md:my-8" />
+                <Divider class="custom-divider" />
 
-                <div class="flex flex-col gap-4">
-                    <div class="flex flex-col md:flex-row justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 gap-3">
-                        <div class="flex flex-col items-center md:items-start">
-                            <span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Статус акаунта</span>
-                            <span class="text-emerald-600 font-bold flex items-center gap-2 text-sm">
-                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <div class="info-sections">
+                    <div class="status-box">
+                        <div class="info-item">
+                            <span class="label">Статус акаунта</span>
+                            <span class="value active-status">
+                                <span class="pulse-dot"></span>
                                 Активний
                             </span>
                         </div>
-                        <div class="flex flex-col items-center md:items-end">
-                            <span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Реєстрація</span>
-                            <span class="text-slate-700 font-bold text-sm">{{ formatDate(user?.createdAt) }}</span>
+                        <div class="info-item">
+                            <span class="label">Дата реєстрації</span>
+                            <span class="value">{{ formatDate(user?.createdAt) }}</span>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center md:text-left">
-                            <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">ID Користувача</span>
-                            <span class="text-slate-700 font-mono font-bold text-base">#{{ user?.id }}</span>
+                    <div class="details-grid">
+                        <div class="detail-card">
+                            <i class="pi pi-id-card"></i>
+                            <div class="detail-content">
+                                <span class="detail-label">ID Користувача</span>
+                                <span class="detail-value">#{{ user?.id }}</span>
+                            </div>
                         </div>
-                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center md:text-left">
-                            <span class="text-slate-400 text-[10px] font-bold uppercase block mb-1">Остання активність</span>
-                            <span class="text-slate-700 font-bold text-sm">Сьогодні</span>
+                        <div class="detail-card">
+                            <i class="pi pi-bolt"></i>
+                            <div class="detail-content">
+                                <span class="detail-label">Остання активність</span>
+                                <span class="detail-value">Сьогодні</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </template>
             <template #footer>
-                <Divider class="mt-6 mb-2" />
-                <div class="text-center text-slate-400 italic text-[10px] uppercase tracking-wider">AIS Plumbing Cloud v1.0</div>
+                <div class="profile-footer">
+                    <Divider />
+                    <p class="version-text">AIS Plumbing Cloud v1.0</p>
+                </div>
             </template>
         </Card>
     </div>
 </template>
 
 <style scoped>
-:deep(.p-card-body) { padding: 1.5rem; }
-@media (min-width: 768px) { :deep(.p-card-body) { padding: 2rem; } }
+.profile-container {
+    padding: 2rem;
+    width: 100%;
+}
+
+.profile-card {
+    width: 100%;
+    border-radius: 1.25rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.05);
+    text-align: left;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.avatar-circle {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.full-name {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.025em;
+}
+
+.handle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.username-tag {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.custom-divider {
+    margin: 2rem 0;
+}
+
+.info-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.status-box {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+}
+
+.value {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.active-status {
+    color: #10b981;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.details-grid {
+    display: grid;
+    grid-template-cols: 1fr 1fr;
+    gap: 1rem;
+}
+
+.detail-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s;
+}
+
+.detail-card i {
+    font-size: 1.25rem;
+    color: #64748b;
+}
+
+.detail-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.detail-value {
+    font-weight: 800;
+    color: #334155;
+    font-size: 1rem;
+}
+
+.version-text {
+    text-align: center;
+    color: #cbd5e1;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .profile-container { padding: 1rem; }
+    .status-box { flex-direction: column; gap: 1rem; }
+    .details-grid { grid-template-cols: 1fr; }
+    .profile-header { flex-direction: column; text-align: center; }
+}
 </style>

@@ -69,8 +69,8 @@ onMounted(loadData);
 const openNew = () => {
     product.value = { 
         price: 0, 
-        minThreshold: 5,
-        name: '',
+        minThreshold: 5, 
+        name: '', 
         sku: '',
         material: '',
         diameter: '',
@@ -134,68 +134,37 @@ const confirmDelete = (id: number) => {
 </script>
 
 <template>
-    <div class="p-3 md:p-6">
+    <div class="view-container">
         <Toast />
         <ConfirmDialog />
         
-        <div class="bg-white p-4 md:p-6 rounded-lg shadow border border-slate-200">
-            <div class="flex flex-col gap-4 mb-6">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left">
-                    <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">Каталог товарів</h2>
-                        <p class="text-slate-500 text-sm">Управління номенклатурою та технічними характеристиками</p>
-                    </div>
-                    <Button v-if="canAdd" label="Додати товар" icon="pi pi-plus" severity="success" @click="openNew" class="w-full md:w-auto" />
+        <div class="main-card">
+            <div class="top-bar">
+                <div class="title-block">
+                    <h2 class="title">Каталог товарів</h2>
+                    <p class="subtitle">Управління номенклатурою та характеристиками</p>
                 </div>
+                <Button v-if="canAdd" label="Додати товар" icon="pi pi-plus" severity="success" @click="openNew" class="add-button" />
+            </div>
 
-                <div class="flex flex-col lg:flex-row items-center gap-3">
-                    <IconField iconPosition="left" class="w-full lg:w-80">
-                        <InputIcon class="pi pi-search" />
-                        <InputText v-model="filters['global'].value" placeholder="Пошук..." class="w-full" />
-                    </IconField>
-                    
-                    <div class="flex flex-col md:flex-row gap-3 w-full lg:w-auto">
-                        <Select 
-                            v-model="filters['categoryName'].value" 
-                            :options="categories" 
-                            optionLabel="name" 
-                            optionValue="name" 
-                            placeholder="Всі категорії" 
-                            showClear 
-                            class="w-full md:w-60"
-                        />
-                        
-                        <Select 
-                            v-model="filters['brandName'].value" 
-                            :options="brands" 
-                            optionLabel="name" 
-                            optionValue="name" 
-                            placeholder="Всі бренди" 
-                            showClear 
-                            class="w-full md:w-48"
-                        />
-                    </div>
+            <div class="toolbar">
+                <IconField iconPosition="left" class="search-box">
+                    <InputIcon class="pi pi-search" />
+                    <InputText v-model="filters['global'].value" placeholder="Пошук..." class="full-width" />
+                </IconField>
+                
+                <div class="filter-group">
+                    <Select v-model="filters['categoryName'].value" :options="categories" optionLabel="name" optionValue="name" placeholder="Всі категорії" showClear class="select-field" />
+                    <Select v-model="filters['brandName'].value" :options="brands" optionLabel="name" optionValue="name" placeholder="Всі бренди" showClear class="select-field" />
                 </div>
             </div>
 
-            <div class="overflow-x-auto border rounded-lg">
-                <DataTable 
-                    :value="products" 
-                    :loading="loading" 
-                    v-model:filters="filters"
-                    :globalFilterFields="['sku', 'name']"
-                    paginator 
-                    :rows="10" 
-                    class="p-datatable-sm" 
-                    tableStyle="min-width: 100rem"
-                    stripedRows
-                >
-                    <Column field="sku" header="Артикул" sortable class="font-mono text-[10px] md:text-xs"></Column>
-                    <Column field="name" header="Назва" sortable class="text-sm md:text-base font-bold text-slate-700"></Column>
+            <div class="table-wrapper">
+                <DataTable :value="products" :loading="loading" v-model:filters="filters" :globalFilterFields="['sku', 'name']" paginator :rows="10" class="p-datatable-sm" tableStyle="min-width: 100rem" stripedRows>
+                    <Column field="sku" header="Артикул" sortable class="sku-cell"></Column>
+                    <Column field="name" header="Назва" sortable class="name-cell"></Column>
                     <Column field="categoryName" header="Категорія" sortable>
-                        <template #body="s">
-                            <Tag :value="s.data.categoryName" severity="secondary" class="text-[10px]" />
-                        </template>
+                        <template #body="s"><Tag :value="s.data.categoryName" severity="secondary" class="tag-text" /></template>
                     </Column>
                     <Column field="brandName" header="Бренд" sortable></Column>
                     <Column field="material" header="Матеріал" sortable></Column>
@@ -203,19 +172,15 @@ const confirmDelete = (id: number) => {
                     <Column field="threadType" header="Різьба" sortable></Column>
                     <Column field="unitName" header="Од. вим."></Column>
                     <Column field="price" header="Ціна" sortable>
-                        <template #body="s">
-                            <span class="font-bold text-emerald-700 text-sm md:text-base">{{ s.data.price }} грн</span>
-                        </template>
+                        <template #body="s"><span class="price-text">{{ s.data.price }} грн</span></template>
                     </Column>
-
-                    <Column header="Дії" class="w-24 md:w-32 text-right" frozen alignFrozen="right">
+                    <Column header="Дії" class="actions-column" frozen alignFrozen="right">
                         <template #body="s">
-                            <div class="flex gap-1 md:gap-2 justify-end">
+                            <div class="button-gap">
                                 <template v-if="canEdit">
                                     <Button icon="pi pi-pencil" text rounded severity="info" size="small" @click="editProduct(s.data)" />
                                     <Button v-if="canDelete" icon="pi pi-trash" text rounded severity="danger" size="small" @click="confirmDelete(s.data.id)" />
                                 </template>
-                                <span v-else class="text-slate-400 text-[10px] italic">Перегляд</span>
                             </div>
                         </template>
                     </Column>
@@ -223,97 +188,111 @@ const confirmDelete = (id: number) => {
             </div>
         </div>
 
-        <Dialog v-model:visible="productDialog" :header="product.id ? 'Редагувати товар' : 'Новий товар'" modal class="p-fluid w-[95vw] md:w-[650px]">
-            <div class="flex flex-col gap-3 md:gap-4 py-2 text-left">
+        <Dialog v-model:visible="productDialog" :header="product.id ? 'Редагувати товар' : 'Новий товар'" modal class="p-fluid wide-dialog">
+            <div class="form-grid">
                 <div class="field">
-                    <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Назва товару *</label>
-                    <InputText v-model="product.name" placeholder="напр. Змішувач Grohe для ванної" />
+                    <label class="form-label">Назва товару *</label>
+                    <InputText v-model="product.name" />
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div class="row-grid">
                     <div class="field">
-                        <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Артикул *</label>
-                        <InputText v-model="product.sku" placeholder="напр. GR-100-WM" />
+                        <label class="form-label">Артикул *</label>
+                        <InputText v-model="product.sku" />
                     </div>
                     <div class="field">
-                        <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Ціна *</label>
+                        <label class="form-label">Ціна *</label>
                         <InputNumber v-model="product.price" mode="currency" currency="UAH" locale="uk-UA" />
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                <div class="row-grid-three">
                     <div class="field">
-                        <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Категорія *</label>
+                        <label class="form-label">Категорія *</label>
                         <Select v-model="product.categoryId" :options="categories" optionLabel="name" optionValue="id" filter placeholder="Оберіть..." />
                     </div>
                     <div class="field">
-                        <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Бренд</label>
+                        <label class="form-label">Бренд</label>
                         <Select v-model="product.brandId" :options="brands" optionLabel="name" optionValue="id" filter placeholder="Оберіть..." />
                     </div>
                     <div class="field">
-                        <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Од. виміру</label>
+                        <label class="form-label">Од. виміру</label>
                         <Select v-model="product.unitId" :options="units" optionLabel="name" optionValue="id" placeholder="Оберіть..." />
                     </div>
                 </div>
-                <div class="divider border-t border-slate-100 my-1 md:my-2"></div>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                <div class="row-grid-three">
                     <div class="field">
-                        <label class="font-bold text-slate-600 text-xs md:text-sm mb-1 block">Матеріал</label>
-                        <InputText v-model="product.material" placeholder="напр. Латунь" />
+                        <label class="form-label">Матеріал</label>
+                        <InputText v-model="product.material" />
                     </div>
                     <div class="field">
-                        <label class="font-bold text-slate-600 text-xs md:text-sm mb-1 block">Діаметр</label>
-                        <InputText v-model="product.diameter" placeholder="напр. 1/2" />
+                        <label class="form-label">Діаметр</label>
+                        <InputText v-model="product.diameter" />
                     </div>
                     <div class="field">
-                        <label class="font-bold text-slate-600 text-xs md:text-sm mb-1 block">Різьба</label>
-                        <InputText v-model="product.threadType" placeholder="напр. Зовнішня" />
+                        <label class="form-label">Різьба</label>
+                        <InputText v-model="product.threadType" />
                     </div>
                 </div>
                 <div class="field">
-                    <label class="font-bold text-slate-700 text-xs md:text-sm mb-1 block">Мінімальний поріг</label>
+                    <label class="form-label">Мінімальний поріг залишку</label>
                     <InputNumber v-model="product.minThreshold" suffix=" од." />
                 </div>
-            </div>
-            <template #footer>
-                <div class="flex gap-2 justify-end">
+                <div class="footer-actions">
                     <Button label="Скасувати" icon="pi pi-times" text severity="secondary" @click="productDialog = false" />
                     <Button label="Зберегти" icon="pi pi-check" severity="success" @click="saveProduct" />
                 </div>
-            </template>
+            </div>
         </Dialog>
     </div>
 </template>
 
 <style scoped>
-:deep(.p-inputtext), :deep(.p-select), :deep(.p-inputnumber-input) {
-    background-color: #ffffff !important;
-    color: #1e293b !important;
-    border: 1px solid #cbd5e1 !important;
-}
-:deep(.p-select-label) { color: #1e293b !important; }
-:deep(.p-datatable-thead > tr > th) { background-color: #f8fafc !important; }
+.view-container { padding: 1.5rem; }
+.main-card { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; }
 
-.p-iconfield {
-    display: inline-flex !important;
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
 }
 
-/* Стилізація смуги прокрутки для зручності */
-.overflow-x-auto::-webkit-scrollbar {
-    height: 8px;
+.title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 0; text-align: left; }
+.subtitle { color: #64748b; font-size: 0.875rem; text-align: left; }
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
-.overflow-x-auto::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-.overflow-x-auto::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
+
+.search-box { width: 320px; }
+.filter-group { display: flex; gap: 1rem; }
+.select-field { width: 220px; }
+.full-width { width: 100%; }
+
+.table-wrapper { border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+
+.sku-cell { font-family: monospace; font-size: 0.75rem; }
+.name-cell { font-weight: 700; color: #334155; }
+.price-text { font-weight: 700; color: #065f46; }
+.button-gap { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+.form-grid { display: flex; flex-direction: column; gap: 1.25rem; padding: 1rem 0; }
+.row-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 1rem; }
+.row-grid-three { display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 1rem; }
+.form-label { font-weight: 700; font-size: 0.875rem; margin-bottom: 0.25rem; display: block; text-align: left; }
+.footer-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+
+.wide-dialog { width: 650px; }
+
+:deep(.p-datatable-thead > tr > th) { background-color: #f8fafc; color: #64748b; font-size: 0.75rem; text-transform: uppercase; }
 
 @media (max-width: 768px) {
-    :deep(.p-dialog-content) {
-        padding: 1rem !important;
-    }
+    .top-bar, .toolbar, .filter-group { flex-direction: column; align-items: stretch; }
+    .search-box, .select-field { width: 100%; }
+    .row-grid, .row-grid-three { grid-template-cols: 1fr; }
+    .wide-dialog { width: 95vw !important; }
 }
 </style>

@@ -107,7 +107,7 @@ const deleteUser = (id: number) => {
 
 const formatDate = (d: string) => {
   if (!d) return '-';
-  return new Date(d).toLocaleDateString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  return new Date(d).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 const getRoleSeverity = (r: string) => {
@@ -127,111 +127,122 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-3 md:p-6">
+  <div class="view-container">
     <Toast />
     <ConfirmDialog />
     
-    <div class="card bg-white p-4 md:p-6 rounded-lg shadow border border-slate-200">
-      <div class="flex flex-col gap-4 mb-6 text-left">
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="text-xl md:text-2xl font-bold text-slate-800">Персонал</h2>
-            <p class="text-slate-500 text-xs md:text-sm">Список та налаштування прав</p>
-          </div>
-          <Button 
-            icon="pi pi-user-plus" 
-            :label="windowWidth > 768 ? 'Додати' : ''" 
-            severity="success" 
-            @click="userDialog = true" 
-            class="flex-shrink-0"
-          />
-        </div>
+    <div class="header-bar">
+      <div class="title-section">
+        <h1 class="main-title">Персонал</h1>
+        <p class="subtitle">Управління доступом та налаштування прав користувачів</p>
+      </div>
+      <Button 
+        icon="pi pi-user-plus" 
+        :label="windowWidth > 768 ? 'Додати співробітника' : ''" 
+        severity="success" 
+        @click="userDialog = true" 
+        class="add-user-btn"
+      />
+    </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 items-center">
-          <IconField iconPosition="left" class="w-full sm:w-80">
-            <InputIcon class="pi pi-search" />
-            <InputText v-model="filters['global'].value" placeholder="Пошук..." class="w-full" />
-          </IconField>
-          
-          <Select 
-            v-model="filters['role'].value" 
-            :options="roles" 
-            placeholder="Фільтр" 
-            showClear 
-            class="w-full sm:w-48"
-          />
-        </div>
+    <div class="content-card">
+      <div class="toolbar">
+        <IconField iconPosition="left" class="search-field">
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="filters['global'].value" placeholder="Пошук за іменем або логіном..." />
+        </IconField>
+        
+        <Select 
+          v-model="filters['role'].value" 
+          :options="roles" 
+          placeholder="Всі ролі" 
+          showClear 
+          class="role-filter"
+        />
       </div>
 
-      <div class="overflow-x-auto">
+      <div class="table-wrapper">
         <DataTable 
           :value="users" 
           :loading="loading" 
           v-model:filters="filters"
           :globalFilterFields="['username', 'firstName', 'lastName']"
           paginator :rows="10" 
-          class="p-datatable-sm"
-          tableStyle="min-width: 50rem"
+          class="p-datatable-sm custom-users-table"
+          stripedRows
         >
-          <Column header="ПІБ" sortable>
+          <Column header="Співробітник" sortable sortField="firstName">
             <template #body="s">
-              <div class="flex flex-col text-left">
-                <span class="font-bold text-slate-700 text-sm md:text-base">{{ s.data.firstName }} {{ s.data.lastName }}</span>
-                <span class="text-xs text-slate-500">@{{ s.data.username }}</span>
+              <div class="user-cell">
+                <div class="user-avatar-text">{{ s.data.firstName[0] }}{{ s.data.lastName[0] }}</div>
+                <div class="user-info">
+                  <span class="full-name">{{ s.data.firstName }} {{ s.data.lastName }}</span>
+                  <span class="username">@{{ s.data.username }}</span>
+                </div>
               </div>
             </template>
           </Column>
+          
           <Column field="createdAt" header="Реєстрація" sortable>
-            <template #body="s"><span class="text-xs md:text-sm">{{ formatDate(s.data.createdAt) }}</span></template>
-          </Column>
-          <Column field="role" header="Роль">
             <template #body="s">
-              <Tag :value="s.data.role" :severity="getRoleSeverity(s.data.role)" class="text-[10px] md:text-xs" />
+              <span class="date-text">{{ formatDate(s.data.createdAt) }}</span>
             </template>
           </Column>
-          <Column header="Змінити роль" style="min-width: 10rem">
+          
+          <Column field="role" header="Статус">
             <template #body="s">
-              <Select v-model="s.data.role" :options="roles" @change="updateRole(s.data)" class="w-full" size="small" />
+              <Tag :value="s.data.role" :severity="getRoleSeverity(s.data.role)" class="role-tag" />
             </template>
           </Column>
-          <Column header="Дії" style="width: 4rem">
+          
+          <Column header="Управління роллю" style="min-width: 14rem">
             <template #body="s">
-              <Button icon="pi pi-trash" severity="danger" text rounded @click="deleteUser(s.data.id)" />
+              <Select v-model="s.data.role" :options="roles" @change="updateRole(s.data)" class="role-switcher" size="small" />
+            </template>
+          </Column>
+          
+          <Column header="Дії" class="text-right">
+            <template #body="s">
+              <Button icon="pi pi-trash" severity="danger" text rounded @click="deleteUser(s.data.id)" class="delete-btn" />
             </template>
           </Column>
         </DataTable>
       </div>
     </div>
 
-    <Dialog v-model:visible="userDialog" header="Новий співробітник" modal class="p-fluid w-[95vw] md:w-[450px]">
-      <div class="flex flex-col gap-3 py-2 text-left">
-        <div class="field">
-          <label class="font-bold text-xs text-slate-600 mb-1 block">Логін</label>
-          <InputText v-model="newUser.username" />
-        </div>
-        <div class="field">
-          <label class="font-bold text-xs text-slate-600 mb-1 block">Пароль</label>
-          <InputText v-model="newUser.password" type="password" />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="field">
-            <label class="font-bold text-xs text-slate-600 mb-1 block">Ім'я</label>
-            <InputText v-model="newUser.firstName" />
+    <Dialog v-model:visible="userDialog" header="Реєстрація нового співробітника" modal class="p-fluid user-modal">
+      <div class="modal-form">
+        <div class="form-row">
+          <div class="field-group">
+            <label class="form-label">Логін</label>
+            <InputText v-model="newUser.username" placeholder="Логін для входу" />
           </div>
-          <div class="field">
-            <label class="font-bold text-xs text-slate-600 mb-1 block">Прізвище</label>
-            <InputText v-model="newUser.lastName" />
+          <div class="field-group">
+            <label class="form-label">Пароль</label>
+            <InputText v-model="newUser.password" type="password" placeholder="********" />
           </div>
         </div>
-        <div class="field">
-          <label class="font-bold text-xs text-slate-600 mb-1 block">Роль</label>
-          <Select v-model="newUser.role" :options="roles" />
+        
+        <div class="form-row">
+          <div class="field-group">
+            <label class="form-label">Ім'я</label>
+            <InputText v-model="newUser.firstName" placeholder="Ім'я" />
+          </div>
+          <div class="field-group">
+            <label class="form-label">Прізвище</label>
+            <InputText v-model="newUser.lastName" placeholder="Прізвище" />
+          </div>
+        </div>
+        
+        <div class="field-group full-width">
+          <label class="form-label">Системна роль</label>
+          <Select v-model="newUser.role" :options="roles" placeholder="Оберіть роль" />
         </div>
       </div>
       <template #footer>
-        <div class="flex gap-2 justify-end">
+        <div class="modal-actions">
           <Button label="Скасувати" text severity="secondary" @click="userDialog = false" />
-          <Button label="Створити" severity="success" @click="registerUser" />
+          <Button label="Створити акаунт" severity="success" icon="pi pi-check" @click="registerUser" />
         </div>
       </template>
     </Dialog>
@@ -239,26 +250,105 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-:deep(.p-inputtext), :deep(.p-select), :deep(.p-inputnumber-input) {
-  background-color: #ffffff !important;
-  color: #1e293b !important;
-  border: 1px solid #cbd5e1 !important;
-}
-:deep(.p-select-label) { color: #1e293b !important; }
-:deep(.p-datatable-thead > tr > th) {
+.view-container {
+  padding: 2rem;
   background-color: #f8fafc;
-  color: #64748b;
-  font-size: 0.75rem;
-  text-transform: uppercase;
+  min-height: 100vh;
+  text-align: left;
 }
 
-.p-iconfield {
-  display: inline-flex !important;
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.main-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+}
+
+.content-card {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.toolbar {
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background-color: white;
+}
+
+.search-field { flex: 1; max-width: 400px; }
+.search-field :deep(.p-inputtext) { width: 100%; border-radius: 0.5rem; }
+.role-filter { width: 200px; border-radius: 0.5rem; }
+
+.table-wrapper { padding: 0.5rem; }
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-avatar-text {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: #ecfdf5;
+  color: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid #d1fae5;
+}
+
+.user-info { display: flex; flex-direction: column; }
+.full-name { font-weight: 700; color: #1e293b; font-size: 0.95rem; }
+.username { font-size: 0.75rem; color: #94a3b8; font-family: monospace; }
+
+.date-text { font-size: 0.85rem; color: #64748b; }
+.role-tag { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 0.5rem; }
+.role-switcher { border-radius: 0.5rem; }
+
+.user-modal { width: 500px; }
+.modal-form { display: flex; flex-direction: column; gap: 1.5rem; padding: 1rem 0; }
+.form-row { display: flex; gap: 1rem; }
+.field-group { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+.form-label { font-weight: 700; font-size: 0.85rem; color: #475569; text-transform: uppercase; letter-spacing: 0.025em; }
+.modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+
+:deep(.p-datatable-thead > tr > th) {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  padding: 1rem !important;
+  border-bottom: 2px solid #f1f5f9 !important;
 }
 
 @media (max-width: 768px) {
-  :deep(.p-dialog-content) {
-    padding: 1rem !important;
-  }
+  .view-container { padding: 1rem; }
+  .header-bar { flex-direction: column; align-items: stretch; gap: 1rem; }
+  .toolbar { flex-direction: column; }
+  .search-field, .role-filter { max-width: 100%; width: 100%; }
+  .form-row { flex-direction: column; }
 }
 </style>

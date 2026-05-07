@@ -56,7 +56,6 @@ const uniqueUsers = computed(() => {
 
 const filteredLogs = computed(() => {
   let result = logs.value;
-
   const selectedTypes = filters.value.actionType.value;
   if (Array.isArray(selectedTypes) && selectedTypes.length > 0) {
     result = result.filter(log => {
@@ -64,21 +63,17 @@ const filteredLogs = computed(() => {
       return selectedTypes.some(type => actionText.includes(type.toLowerCase()));
     });
   }
-
   if (filters.value.username.value) {
     result = result.filter(log => log.username === filters.value.username.value);
   }
-
   if (filters.value.dateRange.value && filters.value.dateRange.value[0] && filters.value.dateRange.value[1]) {
     const start = new Date(filters.value.dateRange.value[0]).getTime();
     const end = new Date(filters.value.dateRange.value[1]).getTime() + 86399999;
-    
     result = result.filter(log => {
       const logTime = new Date(log.timestamp).getTime();
       return logTime >= start && logTime <= end;
     });
   }
-
   if (filters.value.global.value) {
     const searchTerm = filters.value.global.value.toLowerCase();
     result = result.filter(log => 
@@ -86,7 +81,6 @@ const filteredLogs = computed(() => {
       log.action.toLowerCase().includes(searchTerm)
     );
   }
-
   return result;
 });
 
@@ -129,18 +123,18 @@ onMounted(loadLogs);
 </script>
 
 <template>
-  <div class="p-3 md:p-6">
+  <div class="view-container">
     <Toast />
-    <div class="card bg-white p-4 md:p-6 rounded-lg shadow border border-slate-200">
-      <div class="mb-6 text-left">
-        <h2 class="text-xl md:text-2xl font-bold text-slate-800">Журнал дій</h2>
-        <p class="text-slate-500 text-sm">Історія операцій користувачів у системі</p>
+    <div class="main-card">
+      <div class="header-section">
+        <h2 class="title">Журнал дій</h2>
+        <p class="subtitle">Історія операцій користувачів у системі</p>
       </div>
 
-      <div class="flex flex-col md:flex-row flex-wrap gap-3 mb-6 items-center">
-        <IconField iconPosition="left" class="w-full md:w-64">
+      <div class="filters-bar">
+        <IconField iconPosition="left" class="search-field">
           <InputIcon class="pi pi-search" />
-          <InputText v-model="filters.global.value" placeholder="Пошук..." class="w-full" />
+          <InputText v-model="filters.global.value" placeholder="Пошук..." class="full-width" />
         </IconField>
         
         <DatePicker 
@@ -150,7 +144,7 @@ onMounted(loadLogs);
           placeholder="Період дат" 
           showIcon 
           iconDisplay="input"
-          class="w-full md:w-64"
+          class="date-field"
         />
 
         <Select 
@@ -158,7 +152,7 @@ onMounted(loadLogs);
           :options="uniqueUsers" 
           placeholder="Користувач" 
           showClear 
-          class="w-full md:w-44" 
+          class="user-select" 
         />
         
         <MultiSelect 
@@ -168,11 +162,11 @@ onMounted(loadLogs);
           optionValue="value" 
           placeholder="Типи дій" 
           :maxSelectedLabels="1" 
-          class="w-full md:w-56" 
+          class="type-select" 
         />
       </div>
 
-      <div class="overflow-x-auto">
+      <div class="table-wrapper">
         <DataTable 
           :value="filteredLogs" 
           :loading="loading" 
@@ -182,27 +176,29 @@ onMounted(loadLogs);
           sortField="timestamp" 
           :sortOrder="-1"
           tableStyle="min-width: 50rem"
+          stripedRows
         >
           <Column field="timestamp" header="Час" sortable>
             <template #body="s">
-              <span class="text-xs md:text-sm">{{ formatDate(s.data.timestamp) }}</span>
+              <span class="timestamp-text">{{ formatDate(s.data.timestamp) }}</span>
             </template>
           </Column>
           <Column field="username" header="Користувач" sortable>
             <template #body="s">
-              <span class="font-bold text-slate-700 text-xs md:text-sm">{{ s.data.username }}</span>
+              <span class="user-badge">@{{ s.data.username }}</span>
             </template>
           </Column>
-          <Column field="action" header="Дія">
+          <Column field="action" header="Деталі дії">
             <template #body="s">
-              <div class="flex justify-between items-center text-left gap-2">
-                <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" class="text-[10px] md:text-xs" />
+              <div class="action-cell">
+                <Tag :value="s.data.action" :severity="getActionSeverity(s.data.action)" class="action-tag" />
                 <Button 
                   v-if="s.data.action.toLowerCase().includes('транзакція') || s.data.action.includes('ID:') || s.data.action.toLowerCase().includes('переміщення')" 
                   icon="pi pi-print" 
                   text 
                   rounded 
-                  class="p-button-sm flex-shrink-0"
+                  severity="secondary"
+                  class="print-btn"
                   @click="printInvoiceFromLog(s.data.action)" 
                 />
               </div>
@@ -215,6 +211,67 @@ onMounted(loadLogs);
 </template>
 
 <style scoped>
+.view-container {
+  padding: 1.5rem;
+}
+
+.main-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.header-section {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.search-field { width: 260px; }
+.date-field { width: 260px; }
+.user-select { width: 180px; }
+.type-select { width: 220px; }
+.full-width { width: 100%; }
+
+.table-wrapper {
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.timestamp-text { font-size: 0.875rem; font-weight: 500; }
+.user-badge { font-weight: 700; color: #334155; font-size: 0.875rem; }
+
+.action-cell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.action-tag { padding: 0.25rem 0.5rem; font-size: 0.65rem; }
+
 :deep(.p-datatable-thead > tr > th) {
   background-color: #f8fafc;
   color: #64748b;
@@ -222,12 +279,14 @@ onMounted(loadLogs);
   text-transform: uppercase;
 }
 
-:deep(.p-inputtext), :deep(.p-select), :deep(.p-multiselect), :deep(.p-datepicker-input) {
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
+:deep(.p-inputtext), :deep(.p-select), :deep(.p-multiselect) {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
-.overflow-x-auto {
-  width: 100%;
+@media (max-width: 768px) {
+  .view-container { padding: 1rem; }
+  .filters-bar { flex-direction: column; align-items: stretch; }
+  .search-field, .date-field, .user-select, .type-select { width: 100%; }
 }
 </style>

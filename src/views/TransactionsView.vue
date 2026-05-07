@@ -110,7 +110,7 @@ const submitTransaction = async () => {
             showSuccessDialog.value = true;
         }
     } catch (e: any) {
-        toast.add({ severity: 'error', summary: 'Помилка', detail: 'Операція відхилена' });
+        toast.add({ severity: 'error', summary: 'Помилка', detail: e.response?.data?.message || 'Операція відхилена' });
     } finally {
         loading.value = false;
     }
@@ -127,89 +127,87 @@ onMounted(loadData);
 </script>
 
 <template>
-    <div class="p-3 md:p-6 max-w-6xl mx-auto text-left">
+    <div class="view-container">
         <Toast />
         
-        <Dialog v-model:visible="showSuccessDialog" modal header="Транзакція завершена" :style="{ width: '90vw', maxWidth: '25rem' }">
-            <p class="mb-4">Бажаєте завантажити PDF накладну для цієї операції?</p>
-            <div class="flex justify-end gap-2">
+        <Dialog v-model:visible="showSuccessDialog" modal header="Транзакція завершена" class="success-dialog">
+            <p class="dialog-text">Бажаєте завантажити PDF накладну для цієї операції?</p>
+            <div class="dialog-actions">
                 <Button label="Пізніше" severity="secondary" @click="showSuccessDialog = false" />
                 <Button label="Завантажити" icon="pi pi-file-pdf" @click="downloadLastInvoice" />
             </div>
         </Dialog>
 
-        <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Нова накладна</h1>
-                <p class="text-slate-500 text-sm">Групова реєстрація руху товарів</p>
-            </div>
-            <Select v-model="transactionType" :options="transactionTypes" optionLabel="label" optionValue="value" class="w-full sm:w-48" />
+        <div class="header-section">
+            <h1 class="title">Нова накладна</h1>
+            <p class="subtitle">Групова реєстрація руху товарів</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card class="lg:col-span-1 border border-slate-200 shadow-sm h-fit text-left">
-                <template #title><span class="text-lg">Додати товар</span></template>
-                <template #content>
-                    <div class="flex flex-col gap-4">
-                        <div class="flex flex-col gap-2">
-                            <label class="font-bold text-slate-700 text-sm">Товар</label>
-                            <Select v-model="currentItem.productId" :options="products" optionLabel="name" optionValue="id" filter placeholder="Оберіть товар" class="w-full" />
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="font-bold text-slate-700 text-sm">Локація</label>
-                            <Select v-model="currentItem.locationId" :options="locations" optionValue="id" filter placeholder="Оберіть місце" class="w-full">
-                                <template #value="slotProps">
-                                    <div v-if="slotProps.value" class="flex items-center">
-                                        <span class="text-sm">Комірка #{{ slotProps.value }}</span>
-                                    </div>
-                                    <span v-else>{{ slotProps.placeholder }}</span>
-                                </template>
-                                <template #option="s">
-                                    <div class="flex flex-col text-sm py-1 text-left">
-                                        <span class="font-bold text-blue-600 mb-1 text-xs md:text-sm">{{ s.option.warehouse?.name }}</span>
-                                        <span class="text-slate-600 text-xs md:text-sm">
-                                            {{ s.option.rowCode }}-{{ s.option.rackCode }}-{{ s.option.shelfCode }}
-                                        </span>
-                                    </div>
-                                </template>
-                            </Select>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="font-bold text-slate-700 text-sm">Кількість</label>
-                            <InputNumber v-model="currentItem.quantity" :min="1" showButtons class="w-full" />
-                        </div>
-                        <Button label="Додати до списку" icon="pi pi-plus" severity="secondary" @click="addToCart" class="mt-2 w-full" />
-                    </div>
-                </template>
-            </Card>
-
-            <div class="lg:col-span-2">
-                <Card class="border border-slate-200 shadow-sm text-left">
+        <div class="main-layout">
+            <div class="form-panel">
+                <Card class="input-card">
+                    <template #title><span class="panel-title">Додати товар</span></template>
                     <template #content>
-                        <div class="overflow-x-auto">
-                            <DataTable :value="cart" class="p-datatable-sm" tableStyle="min-width: 30rem">
-                                <template #empty><div class="p-4 text-center text-slate-400">Список порожній</div></template>
+                        <div class="form-content-wrapper">
+                            <div class="form-grid">
+                                <div class="field-block">
+                                    <label class="field-label">Тип операції</label>
+                                    <Select v-model="transactionType" :options="transactionTypes" optionLabel="label" optionValue="value" class="fixed-width-input" />
+                                </div>
+                                <div class="field-block">
+                                    <label class="field-label">Товар</label>
+                                    <Select v-model="currentItem.productId" :options="products" optionLabel="name" optionValue="id" filter placeholder="Оберіть товар" class="fixed-width-input" />
+                                </div>
+                                <div class="field-block">
+                                    <label class="field-label">Локація</label>
+                                    <Select v-model="currentItem.locationId" :options="locations" optionValue="id" filter placeholder="Оберіть місце" class="fixed-width-input">
+                                        <template #value="slotProps">
+                                            <div v-if="slotProps.value" class="text-sm">Комірка #{{ slotProps.value }}</div>
+                                            <span v-else>{{ slotProps.placeholder }}</span>
+                                        </template>
+                                        <template #option="s">
+                                            <div class="location-option">
+                                                <span class="wh-name">{{ s.option.warehouse?.name }}</span>
+                                                <span class="loc-code">{{ s.option.rowCode }}-{{ s.option.rackCode }}-{{ s.option.shelfCode }}</span>
+                                            </div>
+                                        </template>
+                                    </Select>
+                                </div>
+                                <div class="field-block">
+                                    <label class="field-label">Кількість</label>
+                                    <InputNumber v-model="currentItem.quantity" :min="1" showButtons class="fixed-width-input" />
+                                </div>
+                                <Button label="Додати до списку" icon="pi pi-plus" severity="secondary" @click="addToCart" class="add-btn" />
+                            </div>
+                        </div>
+                    </template>
+                </Card>
+            </div>
+
+            <div class="table-panel">
+                <Card class="cart-card">
+                    <template #content>
+                        <div class="table-container">
+                            <DataTable :value="cart" class="p-datatable-sm" stripedRows>
+                                <template #empty><div class="empty-msg">Список товарів порожній</div></template>
                                 <Column header="Товар">
-                                    <template #body="slotProps">
-                                        <span class="text-sm">{{ slotProps.data.product?.name }}</span>
-                                    </template>
+                                    <template #body="s"><span class="product-name">{{ s.data.product?.name }}</span></template>
                                 </Column>
-                                <Column field="quantity" header="К-сть" class="w-16" />
+                                <Column field="quantity" header="К-сть" class="qty-col" />
                                 <Column header="Сума">
-                                    <template #body="slotProps">
-                                        <span class="text-sm">{{ (slotProps.data.price * slotProps.data.quantity).toFixed(0) }} ₴</span>
-                                    </template>
+                                    <template #body="s"><span class="amount-text">{{ (s.data.price * s.data.quantity).toFixed(0) }} ₴</span></template>
                                 </Column>
-                                <Column style="width: 3rem">
-                                    <template #body="slotProps">
-                                        <Button icon="pi pi-times" severity="danger" text rounded @click="removeFromCart(slotProps.index)" />
-                                    </template>
+                                <Column class="actions-col">
+                                    <template #body="s"><Button icon="pi pi-times" severity="danger" text rounded @click="removeFromCart(s.index)" /></template>
                                 </Column>
                             </DataTable>
                         </div>
-                        <div v-if="cart.length > 0" class="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <span class="text-xl font-bold text-slate-800">{{ totalAmount.toFixed(0) }} ₴</span>
-                            <Button label="Провести накладну" icon="pi pi-check" severity="success" :loading="loading" @click="submitTransaction" class="w-full sm:w-auto px-6" />
+                        <div v-if="cart.length > 0" class="footer-summary">
+                            <div class="total-block">
+                                <span class="total-label">Загальна сума</span>
+                                <span class="total-value">{{ totalAmount.toFixed(0) }} ₴</span>
+                            </div>
+                            <Button label="Провести накладну" icon="pi pi-check" severity="success" :loading="loading" @click="submitTransaction" class="submit-btn" />
                         </div>
                     </template>
                 </Card>
@@ -219,10 +217,71 @@ onMounted(loadData);
 </template>
 
 <style scoped>
-:deep(.p-datatable-thead > tr > th) {
-    background-color: #f8fafc;
-    color: #64748b;
-    font-size: 0.75rem;
-    text-transform: uppercase;
+.view-container { 
+    padding: 1.5rem; 
+    text-align: left; 
+    width: 100%;
+}
+
+.header-section { margin-bottom: 2rem; }
+.title { font-size: 1.75rem; font-weight: 800; color: #1e293b; margin: 0; }
+.subtitle { color: #64748b; font-size: 0.875rem; }
+
+.main-layout { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1.5rem; 
+    width: 100%;
+}
+
+.form-panel, .table-panel {
+    width: 100%;
+}
+
+.form-content-wrapper { 
+    width: 100%; 
+    max-width: 600px; 
+    margin: 0; 
+}
+
+.panel-title { font-size: 1.125rem; font-weight: 700; color: #334155; }
+.form-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+.field-block { display: flex; flex-direction: column; gap: 0.5rem; }
+.field-label { font-weight: 700; font-size: 0.875rem; color: #475569; }
+
+.fixed-width-input { width: 100%; }
+
+.add-btn { margin-top: 0.5rem; width: 100%; padding: 0.75rem; }
+
+.location-option { display: flex; flex-direction: column; text-align: left; }
+.wh-name { font-size: 0.7rem; font-weight: 800; color: #2563eb; text-transform: uppercase; }
+.loc-code { font-size: 0.875rem; color: #475569; }
+
+.input-card, .cart-card { border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; }
+
+.table-container { border-radius: 8px; border: 1px solid #f1f5f9; overflow: hidden; }
+.empty-msg { padding: 3rem; text-align: center; color: #94a3b8; font-style: italic; }
+.product-name { font-weight: 600; color: #334155; }
+.qty-col { width: 80px; text-align: center; }
+.amount-text { font-weight: 700; color: #059669; }
+.actions-col { width: 50px; }
+
+.footer-summary { margin-top: 2rem; padding-top: 1.5rem; border-top: 2px dashed #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.total-block { display: flex; flex-direction: column; }
+.total-label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.total-value { font-size: 2rem; font-weight: 900; color: #1e293b; }
+.submit-btn { padding: 1rem 2rem; font-size: 1rem; width: auto; }
+
+.success-dialog { width: 400px; }
+.dialog-text { color: #475569; margin-bottom: 1.5rem; line-height: 1.5; }
+.dialog-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+:deep(.p-datatable-thead > tr > th) { background-color: #f8fafc; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
+
+@media (max-width: 768px) {
+    .view-container { padding: 1rem; }
+    .form-content-wrapper { max-width: 100%; }
+    .footer-summary { flex-direction: column; align-items: stretch; gap: 1.5rem; text-align: center; }
+    .submit-btn { width: 100%; }
 }
 </style>
